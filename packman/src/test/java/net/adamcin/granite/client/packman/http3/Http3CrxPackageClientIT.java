@@ -1,7 +1,7 @@
-package net.adamcin.granite.client.pm.http3;
+package net.adamcin.granite.client.packman.http3;
 
-import net.adamcin.granite.client.pm.AbstractCrxPackageClient;
-import net.adamcin.granite.client.pm.AbstractCrxPackageClientITBase;
+import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.AbstractCrxPackageClientITBase;
 
 public class Http3CrxPackageClientIT extends AbstractCrxPackageClientITBase {
 

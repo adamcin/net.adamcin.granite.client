@@ -1,4 +1,4 @@
-package net.adamcin.granite.client.pm;
+package net.adamcin.granite.client.packman;
 
 import com.day.jcr.vault.maven.pack.PackageId;
 

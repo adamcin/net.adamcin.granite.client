@@ -1,10 +1,10 @@
-package net.adamcin.granite.client.pm.http3;
+package net.adamcin.granite.client.packman.http3;
 
-import net.adamcin.granite.client.pm.AbstractCrxPackageClient;
-import net.adamcin.granite.client.pm.DetailedResponse;
-import net.adamcin.granite.client.pm.PackId;
-import net.adamcin.granite.client.pm.ResponseProgressListener;
-import net.adamcin.granite.client.pm.SimpleResponse;
+import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.ResponseProgressListener;
+import net.adamcin.granite.client.packman.SimpleResponse;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;

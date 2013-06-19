@@ -1,4 +1,4 @@
-package net.adamcin.granite.client.pm;
+package net.adamcin.granite.client.packman;
 
 /**
  * A simple {@link ServiceResponse} interface based on the service's JSON representation

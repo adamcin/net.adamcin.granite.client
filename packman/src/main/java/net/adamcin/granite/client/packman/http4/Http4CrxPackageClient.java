@@ -1,10 +1,10 @@
-package net.adamcin.granite.client.pm.http4;
+package net.adamcin.granite.client.packman.http4;
 
-import net.adamcin.granite.client.pm.AbstractCrxPackageClient;
-import net.adamcin.granite.client.pm.DetailedResponse;
-import net.adamcin.granite.client.pm.PackId;
-import net.adamcin.granite.client.pm.ResponseProgressListener;
-import net.adamcin.granite.client.pm.SimpleResponse;
+import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.ResponseProgressListener;
+import net.adamcin.granite.client.packman.SimpleResponse;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -47,7 +47,7 @@ public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
 
     private static final ResponseHandler<SimpleResponse> SIMPLE_RESPONSE_HANDLER =
             new ResponseHandler<SimpleResponse>() {
-                @Override public SimpleResponse handleResponse(final HttpResponse response)
+                public SimpleResponse handleResponse(final HttpResponse response)
                         throws ClientProtocolException, IOException {
                     StatusLine statusLine = response.getStatusLine();
                     return parseSimpleResponse(
@@ -60,7 +60,7 @@ public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
 
     private static final ResponseHandler<HttpResponse> AUTHORIZED_RESPONSE_HANDLER =
             new ResponseHandler<HttpResponse>() {
-                @Override public HttpResponse handleResponse(final HttpResponse response)
+                public HttpResponse handleResponse(final HttpResponse response)
                         throws ClientProtocolException, IOException {
                     if (response.getStatusLine().getStatusCode() == 401) {
                         throw new IOException("401 Unauthorized");
@@ -159,7 +159,7 @@ public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
 
     private DetailedResponse executeDetailedRequest(final HttpUriRequest request, final ResponseProgressListener listener) throws Exception {
         return getClient().execute(request, new ResponseHandler<DetailedResponse>() {
-                @Override public DetailedResponse handleResponse(final HttpResponse response)
+                public DetailedResponse handleResponse(final HttpResponse response)
                         throws ClientProtocolException, IOException {
                     StatusLine statusLine = response.getStatusLine();
                     return parseDetailedResponse(

@@ -1,18 +1,21 @@
-package net.adamcin.granite.client.pm.async;
+package net.adamcin.granite.client.packman.async;
 
 import com.ning.http.client.*;
 import com.ning.http.multipart.FilePart;
-import net.adamcin.granite.client.pm.AbstractCrxPackageClient;
-import net.adamcin.granite.client.pm.DetailedResponse;
-import net.adamcin.granite.client.pm.PackId;
-import net.adamcin.granite.client.pm.ResponseProgressListener;
-import net.adamcin.granite.client.pm.SimpleResponse;
+import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.PackId;
+import net.adamcin.granite.client.packman.ResponseProgressListener;
+import net.adamcin.granite.client.packman.SimpleResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +52,9 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
 
     private final AsyncHttpClient client;
 
-    private Realm realm = DEFAULT_REALM;
+    private Realm realm = null;
+
+    private final List<Cookie> cookies = new ArrayList<Cookie>();
 
     public AsyncCrxPackageClient() {
         this(new AsyncHttpClient());
@@ -79,6 +84,14 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
         this.realm = realm;
     }
 
+    public void setCookies(Collection<Cookie> cookies) {
+        this.cookies.clear();
+
+        if (cookies != null) {
+            this.cookies.addAll(cookies);
+        }
+    }
+
     private ListenableFuture<Response> executeRequest(Request request) throws IOException {
         return this.client.executeRequest(request, AUTHORIZED_RESPONSE_HANDLER);
     }
@@ -104,12 +117,21 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
         }).get();
     }
 
+    private AsyncHttpClient.BoundRequestBuilder addCookies(AsyncHttpClient.BoundRequestBuilder builder) {
+        if (builder != null) {
+            for (Cookie cookie : this.cookies) {
+                builder.addCookie(cookie);
+            }
+        }
+        return builder;
+    }
+
     /**
      * {@inheritDoc}
      */
     protected final Either<? extends Exception, Boolean> checkServiceAvailability(final boolean checkTimeout,
                                                                                   final long timeoutRemaining) {
-        final Request request = this.client.prepareGet(getJsonUrl()).setRealm(realm).build();
+        final Request request = this.addCookies(this.client.prepareGet(getJsonUrl())).setRealm(realm).build();
 
         try {
             final ListenableFuture<Response> future = executeRequest(request);
@@ -131,17 +153,17 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
 
     private AsyncHttpClient.BoundRequestBuilder buildSimpleRequest(PackId packageId) {
         if (packageId != null) {
-            return this.client.preparePost(getJsonUrl(packageId)).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getJsonUrl(packageId))).setRealm(realm);
         } else {
-            return this.client.preparePost(getJsonUrl()).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getJsonUrl())).setRealm(realm);
         }
     }
 
     private AsyncHttpClient.BoundRequestBuilder buildDetailedRequest(PackId packageId) {
         if (packageId != null) {
-            return this.client.preparePost(getHtmlUrl(packageId)).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getHtmlUrl(packageId))).setRealm(realm);
         } else {
-            return this.client.preparePost(getHtmlUrl()).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getHtmlUrl())).setRealm(realm);
         }
     }
 

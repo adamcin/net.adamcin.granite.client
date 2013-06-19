@@ -41,7 +41,7 @@
     <packaging>pom</packaging>
 
     <inceptionYear>2013</inceptionYear>
-    <name>SSHKey</name>
+    <name>Granite Client Parent</name>
     <description>Implementation of client API's and integrations for Adobe Granite</description>
     <url>http://adamcin.net/net.adamcin.granite.client</url>
 
@@ -101,6 +101,10 @@
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>2.3.1</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>

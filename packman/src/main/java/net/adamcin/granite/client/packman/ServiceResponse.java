@@ -1,4 +1,4 @@
-package net.adamcin.granite.client.pm;
+package net.adamcin.granite.client.packman;
 
 /**
  * The basic service response interface.

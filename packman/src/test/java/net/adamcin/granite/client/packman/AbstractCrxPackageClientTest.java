@@ -1,4 +1,4 @@
-package net.adamcin.granite.client.pm;
+package net.adamcin.granite.client.packman;
 
 import net.adamcin.commons.testing.junit.TestBody;
 import org.apache.commons.io.IOUtils;
@@ -90,31 +90,26 @@ public class AbstractCrxPackageClientTest {
         // path x action
         Map<String, String> progress = new HashMap<String, String>();
 
-        @Override
         public void onStart(String title) {
             LOGGER.debug("[TestListener#onStart] title={}", title);
             this.title = title;
         }
 
-        @Override
         public void onLog(String message) {
             LOGGER.debug("[TestListener#onLog] message={}", message);
             logs.add(message);
         }
 
-        @Override
         public void onMessage(String message) {
             LOGGER.debug("[TestListener#onMessage] message={}", message);
             messages.add(message);
         }
 
-        @Override
         public void onProgress(String action, String path) {
             LOGGER.debug("[TestListener#onProgress] action={}, path={}", action, path);
             progress.put(path, action);
         }
 
-        @Override
         public void onError(String path, String error) {
             LOGGER.info("[TestListener#onError] path={}, error={}", path, error);
             errors.put(path, error);
