@@ -1,15 +1,18 @@
 package net.adamcin.granite.client.packman;
 
 import com.day.jcr.vault.maven.pack.PackageId;
+import com.day.jcr.vault.maven.pack.Version;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-public final class PackId {
+public final class PackId implements Serializable, Comparable<PackId> {
+
     public static final String PROPERTIES_ENTRY = "META-INF/vault/properties.xml";
     public static final String PROP_GROUP = "group";
     public static final String PROP_NAME = "name";
@@ -42,6 +45,61 @@ public final class PackId {
 
     public String getInstallationPath() {
         return installationPath;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        PackId packId = (PackId) o;
+
+        if (!group.equals(packId.group)) {
+            return false;
+        }
+        if (!installationPath.equals(packId.installationPath)) {
+            return false;
+        }
+        if (!name.equals(packId.name)) {
+            return false;
+        }
+        if (!version.equals(packId.version)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = group.hashCode();
+        result = 31 * result + name.hashCode();
+        result = 31 * result + version.hashCode();
+        result = 31 * result + installationPath.hashCode();
+        return result;
+    }
+
+    public int compareTo(PackId o) {
+        if (o == null) {
+            return -1;
+        }
+        if (this.getGroup().equals(o.getGroup())) {
+            if (this.getName().equals(o.getName())) {
+                if (this.getVersion().equals(o.getVersion())) {
+                    return 0;
+                } else {
+                    return Version.create(this.getVersion()).compareTo(Version.create(o.getVersion()));
+                }
+            } else {
+                return this.getName().compareTo(o.getName());
+            }
+        } else {
+            return this.getGroup().compareTo(o.getGroup());
+        }
     }
 
     public static PackId identifyPackage(File file) throws IOException {

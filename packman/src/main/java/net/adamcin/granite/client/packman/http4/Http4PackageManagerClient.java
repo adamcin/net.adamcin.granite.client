@@ -1,10 +1,11 @@
 package net.adamcin.granite.client.packman.http4;
 
-import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
+import net.adamcin.sshkey.commons.Signer;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -39,8 +40,8 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Http4CrxPackageClient.class);
+public final class Http4PackageManagerClient extends AbstractPackageManagerClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Http4PackageManagerClient.class);
 
     public static final UsernamePasswordCredentials DEFAULT_CREDENTIALS =
             new UsernamePasswordCredentials(DEFAULT_USERNAME, DEFAULT_PASSWORD);
@@ -74,7 +75,7 @@ public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
     private HttpContext httpContext = new BasicHttpContext();
     private final AuthCache preemptAuthCache = new BasicAuthCache();
 
-    public Http4CrxPackageClient() {
+    public Http4PackageManagerClient() {
         this(new DefaultHttpClient());
         getClient().getCredentialsProvider().setCredentials(AuthScope.ANY, DEFAULT_CREDENTIALS);
         httpContext.setAttribute(ClientContext.AUTH_CACHE, preemptAuthCache);
@@ -85,7 +86,7 @@ public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
         }
     }
 
-    public Http4CrxPackageClient(AbstractHttpClient client) {
+    public Http4PackageManagerClient(AbstractHttpClient client) {
         this.client = client;
     }
 
@@ -133,6 +134,16 @@ public final class Http4CrxPackageClient extends AbstractCrxPackageClient {
     public void setBasicCredentials(String username, String password) {
         getClient().getCredentialsProvider().setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(username, password));
+    }
+
+    @Override
+    public boolean login(String username, String password) throws IOException {
+        throw new UnsupportedOperationException("login not implemented");
+    }
+
+    @Override
+    public boolean login(String username, Signer signer) throws IOException {
+        throw new UnsupportedOperationException("login not implemented");
     }
 
     @Override

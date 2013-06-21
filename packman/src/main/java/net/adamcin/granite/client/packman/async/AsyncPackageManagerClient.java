@@ -2,11 +2,13 @@ package net.adamcin.granite.client.packman.async;
 
 import com.ning.http.client.*;
 import com.ning.http.multipart.FilePart;
-import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
+import net.adamcin.sshkey.clientauth.async.AsyncUtil;
+import net.adamcin.sshkey.commons.Signer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +23,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncCrxPackageClient.class);
+public final class AsyncPackageManagerClient extends AbstractPackageManagerClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncPackageManagerClient.class);
 
     public static final Realm DEFAULT_REALM = new Realm.RealmBuilder()
             .setPrincipal(DEFAULT_USERNAME)
@@ -35,11 +37,12 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
     private static final AsyncCompletionHandler<SimpleResponse> SIMPLE_RESPONSE_HANDLER =
             new AsyncCompletionHandler<SimpleResponse>() {
                 @Override public SimpleResponse onCompleted(Response response) throws Exception {
-                    return AbstractCrxPackageClient.parseSimpleResponse(
+                    return AbstractPackageManagerClient.parseSimpleResponse(
                             response.getStatusCode(),
                             response.getStatusText(),
                             response.getResponseBodyAsStream(),
-                            getResponseEncoding(response));
+                            getResponseEncoding(response)
+                    );
                 }
             };
 
@@ -56,11 +59,11 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
 
     private final List<Cookie> cookies = new ArrayList<Cookie>();
 
-    public AsyncCrxPackageClient() {
+    public AsyncPackageManagerClient() {
         this(new AsyncHttpClient());
     }
 
-    public AsyncCrxPackageClient(final AsyncHttpClient client) {
+    public AsyncPackageManagerClient(final AsyncHttpClient client) {
         if (client == null) {
             throw new NullPointerException("client cannot be null");
         }
@@ -84,12 +87,27 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
         this.realm = realm;
     }
 
-    public void setCookies(Collection<Cookie> cookies) {
+    private void setCookies(Collection<Cookie> cookies) {
         this.cookies.clear();
 
         if (cookies != null) {
             this.cookies.addAll(cookies);
         }
+    }
+
+    @Override
+    public boolean login(String username, String password) throws IOException {
+        throw new UnsupportedOperationException("login not implemented");
+    }
+
+    @Override
+    public boolean login(String username, Signer signer) throws IOException {
+
+        Response response = AsyncUtil.login(getBaseUrl() + "/index.html",
+                                            signer, username, getClient(), true, 60000L);
+
+        this.setCookies(response.getCookies());
+        return response.getStatusCode() != 401;
     }
 
     private ListenableFuture<Response> executeRequest(Request request) throws IOException {
@@ -99,6 +117,7 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
     private SimpleResponse executeSimpleRequest(Request request)
             throws IOException, InterruptedException, ExecutionException {
 
+        LOGGER.error("[executeSimpleRequest] url: {}", request.getUrl());
         return this.client.executeRequest(request, SIMPLE_RESPONSE_HANDLER).get();
     }
 
@@ -107,12 +126,13 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
 
         return this.client.executeRequest(request, new AsyncCompletionHandler<DetailedResponse>(){
             @Override public DetailedResponse onCompleted(Response response) throws Exception {
-                return AbstractCrxPackageClient.parseDetailedResponse(
+                return AbstractPackageManagerClient.parseDetailedResponse(
                         response.getStatusCode(),
                         response.getStatusText(),
                         response.getResponseBodyAsStream(),
                         getResponseEncoding(response),
-                        listener);
+                        listener
+                );
             }
         }).get();
     }
@@ -258,7 +278,7 @@ public final class AsyncCrxPackageClient extends AbstractCrxPackageClient {
 
         @Override
         public DetailedResponse getDetailedResponse(final ResponseProgressListener listener) throws Exception {
-            AsyncHttpClient.BoundRequestBuilder requestBuilder = buildSimpleRequest(packId);
+            AsyncHttpClient.BoundRequestBuilder requestBuilder = buildDetailedRequest(packId);
             for (Map.Entry<String, String> param : this.stringParams.entrySet()) {
                 if (this.fileParams.isEmpty()) {
                     requestBuilder.addParameter(param.getKey(), param.getValue());

@@ -10,10 +10,10 @@ import java.io.*;
 
 import static org.junit.Assert.*;
 
-public abstract class AbstractCrxPackageClientITBase {
+public abstract class AbstractPackageManagerClientITBase {
     public final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
-    protected abstract AbstractCrxPackageClient getClientImplementation();
+    protected abstract AbstractPackageManagerClient getClientImplementation();
 
     public void generateTestPackage(File packageFile) throws IOException {
         InputStream testPack = null;
@@ -120,6 +120,6 @@ public abstract class AbstractCrxPackageClientITBase {
     }
 
     abstract class PackmgrClientTestBody extends TestBody {
-        AbstractCrxPackageClient client = getClientImplementation();
+        AbstractPackageManagerClient client = getClientImplementation();
     }
 }

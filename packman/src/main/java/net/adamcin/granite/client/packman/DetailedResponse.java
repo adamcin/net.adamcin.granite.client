@@ -24,4 +24,10 @@ public interface DetailedResponse extends ServiceResponse {
      * @return List of progress errors, which may be empty, but never null.
      */
     List<String> getProgressErrors();
+
+    /**
+     * Lists the stack trace elements returned by the service if the request was unsuccessful.
+     * @return
+     */
+    List<String> getStackTrace();
 }

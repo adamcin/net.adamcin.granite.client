@@ -1,10 +1,11 @@
 package net.adamcin.granite.client.packman.http3;
 
-import net.adamcin.granite.client.packman.AbstractCrxPackageClient;
+import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
+import net.adamcin.sshkey.commons.Signer;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -25,21 +26,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public final class Http3CrxPackageClient extends AbstractCrxPackageClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Http3CrxPackageClient.class);
+public final class Http3PackageManagerClient extends AbstractPackageManagerClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Http3PackageManagerClient.class);
 
     public static final UsernamePasswordCredentials DEFAULT_CREDENTIALS =
             new UsernamePasswordCredentials(DEFAULT_USERNAME, DEFAULT_PASSWORD);
 
     private final HttpClient client;
 
-    public Http3CrxPackageClient() {
+    public Http3PackageManagerClient() {
         this(new HttpClient());
         getClient().getParams().setAuthenticationPreemptive(true);
         getClient().getState().setCredentials(AuthScope.ANY, DEFAULT_CREDENTIALS);
     }
 
-    public Http3CrxPackageClient(final HttpClient client) {
+    public Http3PackageManagerClient(final HttpClient client) {
         this.client = client;
     }
 
@@ -79,6 +80,16 @@ public final class Http3CrxPackageClient extends AbstractCrxPackageClient {
     public void setBasicCredentials(String username, String password) {
         getClient().getState().setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(username, password));
+    }
+
+    @Override
+    public boolean login(String username, String password) throws IOException {
+        return false;
+    }
+
+    @Override
+    public boolean login(String username, Signer signer) throws IOException {
+        return false;
     }
 
     private SimpleResponse executeSimpleRequest(final HttpMethodBase request) throws IOException {

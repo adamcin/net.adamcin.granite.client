@@ -1,5 +1,6 @@
 package net.adamcin.granite.client.packman;
 
+import net.adamcin.sshkey.commons.Signer;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -14,14 +15,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The AbstractCrxPackageClient provides constants and concrete implementations for generic method logic and response
+ * The AbstractPackageManagerClient provides constants and concrete implementations for generic method logic and response
  * handling.
  */
-public abstract class AbstractCrxPackageClient implements CrxPackageClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractCrxPackageClient.class);
+public abstract class AbstractPackageManagerClient implements PackageManagerClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPackageManagerClient.class);
 
     public static final ResponseProgressListener DEFAULT_LISTENER = new DefaultResponseProgressListener();
 
+    public static final String CONSOLE_UI_BASE_PATH = "/crx/packmgr/index.jsp";
     public static final String SERVICE_BASE_PATH = "/crx/packmgr/service";
     public static final String HTML_SERVICE_PATH = SERVICE_BASE_PATH + "/console.html";
     public static final String JSON_SERVICE_PATH = SERVICE_BASE_PATH + "/exec.json";
@@ -97,6 +99,22 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
         return getJsonUrl() + packageId.getInstallationPath() + ".zip";
     }
 
+    public final String getConsoleUiUrl() {
+        return getBaseUrl() + CONSOLE_UI_BASE_PATH;
+    }
+
+    public final String getConsoleUiUrl(PackId packageId) {
+        if (packageId == null) {
+            throw new NullPointerException("packageId");
+        }
+
+        return getConsoleUiUrl() + "#" + packageId.getInstallationPath() + ".zip";
+    }
+
+    public abstract boolean login(String username, String password) throws IOException;
+
+    public abstract boolean login(String username, Signer signer) throws IOException;
+
     /**
      * The CRX PackageManagerServlet does not support GET requests. The only use for GET is to check service
      * availability. If anything other than 405 is returned, the service should be considered unavailable.
@@ -129,18 +147,19 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
                 try {
                     duration = Long.valueOf(successMatcher.group(2));
                 } catch (Exception e) { }
-                return new DetailedResponseImpl(true, message, duration, progressErrors);
+                return new DetailedResponseImpl(true, message, duration, progressErrors, null);
             }
         }
         return null;
     }
 
-    private static DetailedResponse handleFailure(String line, StringBuilder failureBuilder, List<String> progressErrors) {
+    private static DetailedResponse handleFailure(String line, List<String> failureBuilder, List<String> progressErrors) {
         if (line.startsWith("</pre>")) {
-            return new DetailedResponseImpl(false, failureBuilder.toString().trim(), -1, progressErrors);
+            String msg = failureBuilder != null && !failureBuilder.isEmpty() ? failureBuilder.remove(0) : "";
+            return new DetailedResponseImpl(false, msg, -1, progressErrors, failureBuilder);
         } else {
             // assume line is part of stack trace
-            failureBuilder.append(line).append(File.separator);
+            failureBuilder.add(line.trim());
         }
         return null;
     }
@@ -199,11 +218,12 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
                 reader = new BufferedReader(new InputStreamReader(stream, charset));
                 boolean isFailure = false;
                 boolean isStarted = false;
-                final StringBuilder failureBuilder = new StringBuilder();
+                final List<String> failureBuilder = new ArrayList<String>();
                 final List<String> progressErrors = new ArrayList<String>();
 
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    LOGGER.error("[parseDetailedResponse] line: {}", line);
                     if (isFailure) {
 
                         // handle failure end line
@@ -265,6 +285,7 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
             try {
                 JSONTokener tokener = new JSONTokener(new InputStreamReader(stream, charset));
                 final JSONObject json = new JSONObject(tokener);
+                LOGGER.error("[parseSimpleResponse] simple response: {}", json.toString());
 
                 final boolean success = json.has(KEY_SUCCESS) && json.getBoolean(KEY_SUCCESS);
                 final String message = json.has(KEY_MESSAGE) ? json.getString(KEY_MESSAGE) : "";
@@ -324,13 +345,20 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
         final String message;
         final long duration;
         final List<String> progressErrors;
+        final List<String> stackTrace;
 
         DetailedResponseImpl(boolean success, String message, long duration, List<String> progressErrors) {
+            this(success, message, duration, progressErrors, null);
+        }
+
+        DetailedResponseImpl(boolean success, String message, long duration, List<String> progressErrors, List<String> stackTrace) {
             this.success = success;
             this.message = message;
             this.duration = duration;
             List<String> _progressErrors = progressErrors == null ? new ArrayList<String>() : progressErrors;
             this.progressErrors = Collections.unmodifiableList(_progressErrors);
+            List<String> _stackTrace = stackTrace == null ? new ArrayList<String>() : stackTrace;
+            this.stackTrace = Collections.unmodifiableList(_stackTrace);
         }
 
         public long getDuration() {
@@ -351,6 +379,10 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
 
         public String getMessage() {
             return message;
+        }
+
+        public List<String> getStackTrace() {
+            return this.stackTrace;
         }
 
         public String toString() {
@@ -400,7 +432,7 @@ public abstract class AbstractCrxPackageClient implements CrxPackageClient {
     }
 
     //-------------------------------------------------------------------------
-    // CrxPackageClient method implementations
+    // PackageManagerClient method implementations
     //-------------------------------------------------------------------------
 
     /**

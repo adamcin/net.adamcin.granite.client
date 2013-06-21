@@ -231,6 +231,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>net.adamcin.sshkey</groupId>
+            <artifactId>net.adamcin.sshkey.commons</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.adamcin.sshkey</groupId>
+            <artifactId>net.adamcin.sshkey.clientauth</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>com.ning</groupId>
             <artifactId>async-http-client</artifactId>
             <version>1.7.2</version>

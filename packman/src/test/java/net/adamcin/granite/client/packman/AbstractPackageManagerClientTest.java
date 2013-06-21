@@ -15,8 +15,8 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class AbstractCrxPackageClientTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractCrxPackageClientTest.class);
+public class AbstractPackageManagerClientTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPackageManagerClientTest.class);
 
     final String INSTALL_SUCCESS = "/install_success.html";
     final String INSTALL_SUCCESS_WITH_ERRORS = "/install_success_with_errors.html";
@@ -72,7 +72,7 @@ public class AbstractCrxPackageClientTest {
         }
 
         protected DetailedResponse parse() throws IOException {
-            return AbstractCrxPackageClient.parseDetailedResponse(200, "Ok", stream, "UTF-8", listener);
+            return AbstractPackageManagerClient.parseDetailedResponse(200, "Ok", stream, "UTF-8", listener);
         }
 
         @Override

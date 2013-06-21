@@ -7,7 +7,7 @@ import java.io.IOException;
  * This is the Public API for a CRX Package Manager Console client. It is intended to be used for implementation of
  * higher level deployment management workflows, and therefore it does not expose any connection details.
  */
-public interface CrxPackageClient {
+public interface PackageManagerClient {
 
     /**
      * Identify a CRX package based on its metadata
