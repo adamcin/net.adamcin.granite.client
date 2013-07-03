@@ -1,6 +1,6 @@
 package net.adamcin.granite.client.packman;
 
-import net.adamcin.sshkey.commons.Signer;
+import net.adamcin.sshkey.api.Signer;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;

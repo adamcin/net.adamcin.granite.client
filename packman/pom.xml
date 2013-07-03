@@ -232,12 +232,12 @@
     <dependencies>
         <dependency>
             <groupId>net.adamcin.sshkey</groupId>
-            <artifactId>net.adamcin.sshkey.commons</artifactId>
+            <artifactId>sshkey-api</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>net.adamcin.sshkey</groupId>
-            <artifactId>net.adamcin.sshkey.clientauth</artifactId>
+            <artifactId>sshkey-clientauth</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>

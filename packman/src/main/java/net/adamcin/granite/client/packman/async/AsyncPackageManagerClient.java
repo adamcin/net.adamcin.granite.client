@@ -8,7 +8,7 @@ import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.sshkey.clientauth.async.AsyncUtil;
-import net.adamcin.sshkey.commons.Signer;
+import net.adamcin.sshkey.api.Signer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

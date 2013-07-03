@@ -5,7 +5,7 @@ import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
-import net.adamcin.sshkey.commons.Signer;
+import net.adamcin.sshkey.api.Signer;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
