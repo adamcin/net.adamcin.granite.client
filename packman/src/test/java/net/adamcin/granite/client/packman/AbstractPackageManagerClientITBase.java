@@ -33,9 +33,30 @@ public abstract class AbstractPackageManagerClientITBase {
     }
 
     @Test
+    public void testLoginUsernamePassword() {
+
+        TestBody.test(new PackmgrClientTestBody() {
+            @Override
+            protected void execute() throws Exception {
+                assertTrue("Login using default credentials", client.login("admin", "admin"));
+
+            }
+        });
+    }
+
+    @Test
+    public void testLoginSigner() {
+        TestBody.test(new PackmgrClientTestBody() {
+            @Override protected void execute() throws Exception {
+            }
+        });
+    }
+
+    @Test
     public void testIdentifyPackage() {
         TestBody.test(new PackmgrClientTestBody() {
             @Override protected void execute() throws Exception {
+                client.login("admin", "admin");
                 File nonExist = new File("target/non-exist-package.zip");
                 boolean fileNotFoundThrown = false;
 
@@ -66,6 +87,7 @@ public abstract class AbstractPackageManagerClientITBase {
     public void testWaitForService() {
         TestBody.test(new PackmgrClientTestBody() {
             @Override protected void execute() throws Exception {
+                client.login("admin", "admin");
                 boolean ex = false;
                 try {
                     client.waitForService(5000);
@@ -97,6 +119,7 @@ public abstract class AbstractPackageManagerClientITBase {
     public void testExistsOnServer() {
         TestBody.test(new PackmgrClientTestBody() {
             @Override protected void execute() throws Exception {
+                client.login("admin", "admin");
                 File file = new File("target/test-packmgr-client-1.0.zip");
 
                 generateTestPackage(file);

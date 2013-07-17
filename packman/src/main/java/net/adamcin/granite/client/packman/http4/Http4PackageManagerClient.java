@@ -6,14 +6,17 @@ import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.sshkey.api.Signer;
+import net.adamcin.sshkey.clientauth.http4.Http4Util;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -26,6 +29,7 @@ import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.AbstractHttpClient;
 import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
@@ -37,14 +41,13 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class Http4PackageManagerClient extends AbstractPackageManagerClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(Http4PackageManagerClient.class);
-
-    public static final UsernamePasswordCredentials DEFAULT_CREDENTIALS =
-            new UsernamePasswordCredentials(DEFAULT_USERNAME, DEFAULT_PASSWORD);
 
     private static final ResponseHandler<SimpleResponse> SIMPLE_RESPONSE_HANDLER =
             new ResponseHandler<SimpleResponse>() {
@@ -73,17 +76,9 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
 
     private final AbstractHttpClient client;
     private HttpContext httpContext = new BasicHttpContext();
-    private final AuthCache preemptAuthCache = new BasicAuthCache();
 
     public Http4PackageManagerClient() {
         this(new DefaultHttpClient());
-        getClient().getCredentialsProvider().setCredentials(AuthScope.ANY, DEFAULT_CREDENTIALS);
-        httpContext.setAttribute(ClientContext.AUTH_CACHE, preemptAuthCache);
-        try {
-            preemptAuthCache.put(URIUtils.extractHost(new URI(DEFAULT_BASE_URL)), new BasicScheme());
-        } catch (URISyntaxException e) {
-            // shouldn't happen since we are parsing a valid constant, right?
-        }
     }
 
     public Http4PackageManagerClient(AbstractHttpClient client) {
@@ -122,28 +117,30 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
     }
 
     @Override
-    public void setBaseUrl(String baseUrl) {
-        super.setBaseUrl(baseUrl);
-        try {
-            this.preemptAuthCache.put(URIUtils.extractHost(new URI(baseUrl)), new BasicScheme());
-        } catch (URISyntaxException e) {
-            LOGGER.warn("[setBaseUrl] failed to parse URL for setup of preemptive authentication", e);
-        }
-    }
-
-    public void setBasicCredentials(String username, String password) {
-        getClient().getCredentialsProvider().setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(username, password));
-    }
-
-    @Override
     public boolean login(String username, String password) throws IOException {
-        throw new UnsupportedOperationException("login not implemented");
+        HttpPost request = new HttpPost(getBaseUrl() + "/crx/j_security_check");
+
+        List<NameValuePair> params = new ArrayList<NameValuePair>();
+        params.add(new BasicNameValuePair("j_username", username));
+        params.add(new BasicNameValuePair("j_password", password));
+        params.add(new BasicNameValuePair("j_validate", "true"));
+        params.add(new BasicNameValuePair("_charset_", "utf-8"));
+        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(params);
+
+        request.setEntity(entity);
+
+        try {
+            HttpResponse response = getClient().execute(request, AUTHORIZED_RESPONSE_HANDLER, getHttpContext());
+            return response.getStatusLine().getStatusCode() == 200;
+
+        } catch (Exception e) {
+            throw new IOException("Failed to login using provided credentials");
+        }
     }
 
     @Override
     public boolean login(String username, Signer signer) throws IOException {
-        throw new UnsupportedOperationException("login not implemented");
+        return Http4Util.login(getJsonUrl(), signer, username, 405, getClient(), getHttpContext());
     }
 
     @Override

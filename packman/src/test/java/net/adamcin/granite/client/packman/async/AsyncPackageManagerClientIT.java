@@ -10,7 +10,6 @@ public class AsyncPackageManagerClientIT
     @Override
     protected AbstractPackageManagerClient getClientImplementation() {
         AsyncPackageManagerClient client = new AsyncPackageManagerClient();
-        client.setRealm(AsyncPackageManagerClient.DEFAULT_REALM);
         return client;
     }
 }

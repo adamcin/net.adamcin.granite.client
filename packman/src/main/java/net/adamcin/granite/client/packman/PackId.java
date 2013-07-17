@@ -48,6 +48,11 @@ public final class PackId implements Serializable, Comparable<PackId> {
     }
 
     @Override
+    public String toString() {
+        return group + ":" + name + ":" + version;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;

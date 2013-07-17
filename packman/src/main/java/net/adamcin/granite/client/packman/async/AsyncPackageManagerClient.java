@@ -26,14 +26,6 @@ import java.util.concurrent.TimeoutException;
 public final class AsyncPackageManagerClient extends AbstractPackageManagerClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(AsyncPackageManagerClient.class);
 
-    public static final Realm DEFAULT_REALM = new Realm.RealmBuilder()
-            .setPrincipal(DEFAULT_USERNAME)
-            .setPassword(DEFAULT_PASSWORD)
-            .setUsePreemptiveAuth(true)
-            .setScheme(Realm.AuthScheme.BASIC)
-            .build();
-
-
     private static final AsyncCompletionHandler<SimpleResponse> SIMPLE_RESPONSE_HANDLER =
             new AsyncCompletionHandler<SimpleResponse>() {
                 @Override public SimpleResponse onCompleted(Response response) throws Exception {
@@ -55,8 +47,6 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     private final AsyncHttpClient client;
 
-    private Realm realm = null;
-
     private final List<Cookie> cookies = new ArrayList<Cookie>();
 
     public AsyncPackageManagerClient() {
@@ -74,19 +64,6 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         return this.client;
     }
 
-    public void setBasicCredentials(final String username, final String password) {
-        this.setRealm(new Realm.RealmBuilder()
-                .setPrincipal(username)
-                .setPassword(password)
-                .setUsePreemptiveAuth(true)
-                .setScheme(Realm.AuthScheme.BASIC)
-                .build());
-    }
-
-    public void setRealm(Realm realm) {
-        this.realm = realm;
-    }
-
     private void setCookies(Collection<Cookie> cookies) {
         this.cookies.clear();
 
@@ -97,17 +74,37 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     @Override
     public boolean login(String username, String password) throws IOException {
-        throw new UnsupportedOperationException("login not implemented");
+        Request request = getClient().preparePost(getBaseUrl() + "/crx/j_security_check")
+                .addParameter("j_username", username)
+                .addParameter("j_password", password)
+                .addParameter("j_validate", "true")
+                .addParameter("_charset_", "utf-8").build();
+        try {
+            Response response = getClient().executeRequest(request).get(60000L, TimeUnit.MILLISECONDS);
+
+            if (response.getStatusCode() == 200) {
+                this.setCookies(response.getCookies());
+                return true;
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to login with provided credentials");
+        }
+
+        return false;
     }
 
     @Override
     public boolean login(String username, Signer signer) throws IOException {
 
-        Response response = AsyncUtil.login(getBaseUrl() + "/index.html",
+        Response response = AsyncUtil.login(getJsonUrl(),
                                             signer, username, getClient(), true, 60000L);
 
-        this.setCookies(response.getCookies());
-        return response.getStatusCode() != 401;
+        if (response.getStatusCode() == 405) {
+            this.setCookies(response.getCookies());
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private ListenableFuture<Response> executeRequest(Request request) throws IOException {
@@ -151,7 +148,7 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
      */
     protected final Either<? extends Exception, Boolean> checkServiceAvailability(final boolean checkTimeout,
                                                                                   final long timeoutRemaining) {
-        final Request request = this.addCookies(this.client.prepareGet(getJsonUrl())).setRealm(realm).build();
+        final Request request = this.addCookies(this.client.prepareGet(getJsonUrl())).build();
 
         try {
             final ListenableFuture<Response> future = executeRequest(request);
@@ -173,17 +170,17 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     private AsyncHttpClient.BoundRequestBuilder buildSimpleRequest(PackId packageId) {
         if (packageId != null) {
-            return this.addCookies(this.client.preparePost(getJsonUrl(packageId))).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getJsonUrl(packageId)));
         } else {
-            return this.addCookies(this.client.preparePost(getJsonUrl())).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getJsonUrl()));
         }
     }
 
     private AsyncHttpClient.BoundRequestBuilder buildDetailedRequest(PackId packageId) {
         if (packageId != null) {
-            return this.addCookies(this.client.preparePost(getHtmlUrl(packageId))).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getHtmlUrl(packageId)));
         } else {
-            return this.addCookies(this.client.preparePost(getHtmlUrl())).setRealm(realm);
+            return this.addCookies(this.client.preparePost(getHtmlUrl()));
         }
     }
 

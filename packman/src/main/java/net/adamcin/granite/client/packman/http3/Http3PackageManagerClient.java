@@ -6,6 +6,7 @@ import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.sshkey.api.Signer;
+import net.adamcin.sshkey.clientauth.http3.Http3Util;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -29,15 +30,10 @@ import java.util.Map;
 public final class Http3PackageManagerClient extends AbstractPackageManagerClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(Http3PackageManagerClient.class);
 
-    public static final UsernamePasswordCredentials DEFAULT_CREDENTIALS =
-            new UsernamePasswordCredentials(DEFAULT_USERNAME, DEFAULT_PASSWORD);
-
     private final HttpClient client;
 
     public Http3PackageManagerClient() {
         this(new HttpClient());
-        getClient().getParams().setAuthenticationPreemptive(true);
-        getClient().getState().setCredentials(AuthScope.ANY, DEFAULT_CREDENTIALS);
     }
 
     public Http3PackageManagerClient(final HttpClient client) {
@@ -84,12 +80,18 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
 
     @Override
     public boolean login(String username, String password) throws IOException {
-        return false;
+        PostMethod request = new PostMethod(getBaseUrl() + "/crx/j_security_check");
+        request.addParameter("j_username", username);
+        request.addParameter("j_password", password);
+        request.addParameter("j_validate", "true");
+        request.addParameter("_charset_", "utf-8");
+
+        return getClient().executeMethod(request) == 200;
     }
 
     @Override
     public boolean login(String username, Signer signer) throws IOException {
-        return false;
+        return Http3Util.login(getJsonUrl(), signer, username, 405, getClient());
     }
 
     private SimpleResponse executeSimpleRequest(final HttpMethodBase request) throws IOException {
