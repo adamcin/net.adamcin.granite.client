@@ -11,44 +11,31 @@ import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.client.utils.URIUtils;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.AbstractHttpClient;
-import org.apache.http.impl.client.BasicAuthCache;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class Http4PackageManagerClient extends AbstractPackageManagerClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Http4PackageManagerClient.class);
-
     private static final ResponseHandler<SimpleResponse> SIMPLE_RESPONSE_HANDLER =
             new ResponseHandler<SimpleResponse>() {
                 public SimpleResponse handleResponse(final HttpResponse response)
@@ -118,13 +105,40 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
 
     @Override
     public boolean login(String username, String password) throws IOException {
-        HttpPost request = new HttpPost(getBaseUrl() + "/crx/j_security_check");
+        HttpPost request = new HttpPost(getBaseUrl() + LOGIN_PATH);
 
         List<NameValuePair> params = new ArrayList<NameValuePair>();
-        params.add(new BasicNameValuePair("j_username", username));
-        params.add(new BasicNameValuePair("j_password", password));
-        params.add(new BasicNameValuePair("j_validate", "true"));
-        params.add(new BasicNameValuePair("_charset_", "utf-8"));
+        params.add(new BasicNameValuePair(LOGIN_PARAM_USERNAME, username));
+        params.add(new BasicNameValuePair(LOGIN_PARAM_PASSWORD, password));
+        params.add(new BasicNameValuePair(LOGIN_PARAM_VALIDATE, LOGIN_VALUE_VALIDATE));
+        params.add(new BasicNameValuePair(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET));
+        UrlEncodedFormEntity entity = new UrlEncodedFormEntity(params);
+
+        request.setEntity(entity);
+
+        try {
+            HttpResponse response = getClient().execute(request, AUTHORIZED_RESPONSE_HANDLER, getHttpContext());
+            if (response.getStatusLine().getStatusCode() == 405) {
+                // if 405 Method not allowed, fallback to legacy login
+                return loginLegacy(username, password);
+            } else {
+                return response.getStatusLine().getStatusCode() == 200;
+            }
+
+        } catch (Exception e) {
+            throw new IOException("Failed to login using provided credentials");
+        }
+    }
+
+    private boolean loginLegacy(String username, String password) throws IOException {
+        HttpPost request = new HttpPost(getBaseUrl() + LEGACY_PATH);
+
+        List<NameValuePair> params = new ArrayList<NameValuePair>();
+        params.add(new BasicNameValuePair(LEGACY_PARAM_USERID, username));
+        params.add(new BasicNameValuePair(LEGACY_PARAM_PASSWORD, password));
+        params.add(new BasicNameValuePair(LEGACY_PARAM_WORKSPACE, LEGACY_VALUE_WORKSPACE));
+        params.add(new BasicNameValuePair(LEGACY_PARAM_TOKEN, LEGACY_VALUE_TOKEN));
+        params.add(new BasicNameValuePair(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET));
         UrlEncodedFormEntity entity = new UrlEncodedFormEntity(params);
 
         request.setEntity(entity);

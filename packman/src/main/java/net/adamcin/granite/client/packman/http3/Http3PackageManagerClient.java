@@ -17,8 +17,6 @@ import org.apache.commons.httpclient.methods.multipart.FilePart;
 import org.apache.commons.httpclient.methods.multipart.MultipartRequestEntity;
 import org.apache.commons.httpclient.methods.multipart.Part;
 import org.apache.commons.httpclient.methods.multipart.StringPart;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 public final class Http3PackageManagerClient extends AbstractPackageManagerClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Http3PackageManagerClient.class);
-
     private final HttpClient client;
 
     public Http3PackageManagerClient() {
@@ -80,11 +76,28 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
 
     @Override
     public boolean login(String username, String password) throws IOException {
-        PostMethod request = new PostMethod(getBaseUrl() + "/crx/j_security_check");
-        request.addParameter("j_username", username);
-        request.addParameter("j_password", password);
-        request.addParameter("j_validate", "true");
-        request.addParameter("_charset_", "utf-8");
+        PostMethod request = new PostMethod(getBaseUrl() + LOGIN_PATH);
+        request.addParameter(LOGIN_PARAM_USERNAME, username);
+        request.addParameter(LOGIN_PARAM_PASSWORD, password);
+        request.addParameter(LOGIN_PARAM_VALIDATE, LOGIN_VALUE_VALIDATE);
+        request.addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET);
+
+        int status = getClient().executeMethod(request);
+        if (status == 405) {
+            // if 405 Method not allowed, fallback to legacy login
+            return loginLegacy(username, password);
+        } else {
+            return status == 200;
+        }
+    }
+
+    private boolean loginLegacy(String username, String password) throws IOException {
+        PostMethod request = new PostMethod(getBaseUrl() + LEGACY_PATH);
+        request.addParameter(LEGACY_PARAM_USERID, username);
+        request.addParameter(LEGACY_PARAM_PASSWORD, password);
+        request.addParameter(LEGACY_PARAM_WORKSPACE, LEGACY_VALUE_WORKSPACE);
+        request.addParameter(LEGACY_PARAM_TOKEN, LEGACY_VALUE_TOKEN);
+        request.addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET);
 
         return getClient().executeMethod(request) == 200;
     }

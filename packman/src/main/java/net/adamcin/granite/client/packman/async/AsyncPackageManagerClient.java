@@ -1,16 +1,19 @@
 package net.adamcin.granite.client.packman.async;
 
-import com.ning.http.client.*;
+import com.ning.http.client.AsyncCompletionHandler;
+import com.ning.http.client.AsyncHttpClient;
+import com.ning.http.client.Cookie;
+import com.ning.http.client.ListenableFuture;
+import com.ning.http.client.Request;
+import com.ning.http.client.Response;
 import com.ning.http.multipart.FilePart;
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
-import net.adamcin.sshkey.clientauth.async.AsyncUtil;
 import net.adamcin.sshkey.api.Signer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.adamcin.sshkey.clientauth.async.AsyncUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,8 +27,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public final class AsyncPackageManagerClient extends AbstractPackageManagerClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncPackageManagerClient.class);
-
     private static final AsyncCompletionHandler<SimpleResponse> SIMPLE_RESPONSE_HANDLER =
             new AsyncCompletionHandler<SimpleResponse>() {
                 @Override public SimpleResponse onCompleted(Response response) throws Exception {
@@ -74,11 +75,35 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     @Override
     public boolean login(String username, String password) throws IOException {
-        Request request = getClient().preparePost(getBaseUrl() + "/crx/j_security_check")
-                .addParameter("j_username", username)
-                .addParameter("j_password", password)
-                .addParameter("j_validate", "true")
-                .addParameter("_charset_", "utf-8").build();
+        Request request = getClient().preparePost(getBaseUrl() + LOGIN_PATH)
+                .addParameter(LOGIN_PARAM_USERNAME, username)
+                .addParameter(LOGIN_PARAM_PASSWORD, password)
+                .addParameter(LOGIN_PARAM_VALIDATE, LOGIN_VALUE_VALIDATE)
+                .addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET).build();
+        try {
+            Response response = getClient().executeRequest(request).get(60000L, TimeUnit.MILLISECONDS);
+
+            if (response.getStatusCode() == 200) {
+                this.setCookies(response.getCookies());
+                return true;
+            } else if (response.getStatusCode() == 405) {
+                // fallback to legacy in case of 405 response
+                return loginLegacy(username, password);
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to login with provided credentials");
+        }
+
+        return false;
+    }
+
+    private boolean loginLegacy(String username, String password) throws IOException {
+        Request request = getClient().preparePost(getBaseUrl() + LEGACY_PATH)
+                .addParameter(LEGACY_PARAM_USERID, username)
+                .addParameter(LEGACY_PARAM_PASSWORD, password)
+                .addParameter(LEGACY_PARAM_WORKSPACE, LEGACY_VALUE_WORKSPACE)
+                .addParameter(LEGACY_PARAM_TOKEN, LEGACY_VALUE_TOKEN)
+                .addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET).build();
         try {
             Response response = getClient().executeRequest(request).get(60000L, TimeUnit.MILLISECONDS);
 
@@ -114,7 +139,6 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
     private SimpleResponse executeSimpleRequest(Request request)
             throws IOException, InterruptedException, ExecutionException {
 
-        LOGGER.error("[executeSimpleRequest] url: {}", request.getUrl());
         return this.client.executeRequest(request, SIMPLE_RESPONSE_HANDLER).get();
     }
 
@@ -212,7 +236,7 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
         @Override
         public void onThrowable(Throwable t) {
-            LOGGER.debug("Caught throwable: {}", t);
+            // do nothing
         }
     }
 

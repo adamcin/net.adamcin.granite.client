@@ -4,10 +4,12 @@ import net.adamcin.sshkey.api.Signer;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,8 +21,6 @@ import java.util.regex.Pattern;
  * handling.
  */
 public abstract class AbstractPackageManagerClient implements PackageManagerClient {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPackageManagerClient.class);
-
     public static final ResponseProgressListener DEFAULT_LISTENER = new DefaultResponseProgressListener();
 
     public static final String CONSOLE_UI_BASE_PATH = "/crx/packmgr/index.jsp";
@@ -60,6 +60,23 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     private static final Pattern PATTERN_SUCCESS = Pattern.compile("^</div><br>(.*) in (\\d+)ms\\.<br>");
 
     private String baseUrl = DEFAULT_BASE_URL;
+
+    public static final String LOGIN_PATH = "/crx/j_security_check";
+    public static final String LOGIN_PARAM_USERNAME = "j_username";
+    public static final String LOGIN_PARAM_PASSWORD = "j_password";
+    public static final String LOGIN_PARAM_VALIDATE = "j_validate";
+    public static final String LOGIN_VALUE_VALIDATE = "true";
+    public static final String LOGIN_PARAM_CHARSET = "_charset_";
+    public static final String LOGIN_VALUE_CHARSET = "utf-8";
+
+    public static final String LEGACY_PATH = "/crx/de/login.jsp";
+    public static final String LEGACY_PARAM_USERID = "UserId";
+    public static final String LEGACY_PARAM_PASSWORD = "Password";
+    public static final String LEGACY_PARAM_WORKSPACE = "Workspace";
+    public static final String LEGACY_VALUE_WORKSPACE = "crx.default";
+    public static final String LEGACY_PARAM_TOKEN = ".token";
+    public static final String LEGACY_VALUE_TOKEN = "";
+
 
     public void setBaseUrl(String baseUrl) {
         if (baseUrl == null) {
@@ -223,7 +240,6 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
 
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    LOGGER.error("[parseDetailedResponse] line: {}", line);
                     if (isFailure) {
 
                         // handle failure end line
@@ -285,7 +301,6 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
             try {
                 JSONTokener tokener = new JSONTokener(new InputStreamReader(stream, charset));
                 final JSONObject json = new JSONObject(tokener);
-                LOGGER.error("[parseSimpleResponse] simple response: {}", json.toString());
 
                 final boolean success = json.has(KEY_SUCCESS) && json.getBoolean(KEY_SUCCESS);
                 final String message = json.has(KEY_MESSAGE) ? json.getString(KEY_MESSAGE) : "";
