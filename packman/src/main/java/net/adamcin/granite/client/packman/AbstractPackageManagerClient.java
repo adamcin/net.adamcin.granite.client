@@ -59,8 +59,6 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     private static final Pattern PATTERN_MESSAGE = Pattern.compile("<span class=\"([^\"]*)\"><b>([^<]*)</b>&nbsp;([^<(]*)(\\([^)]*\\))?</span>");
     private static final Pattern PATTERN_SUCCESS = Pattern.compile("^</div><br>(.*) in (\\d+)ms\\.<br>");
 
-    private String baseUrl = DEFAULT_BASE_URL;
-
     public static final String LOGIN_PATH = "/crx/j_security_check";
     public static final String LOGIN_PARAM_USERNAME = "j_username";
     public static final String LOGIN_PARAM_PASSWORD = "j_password";
@@ -77,6 +75,9 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     public static final String LEGACY_PARAM_TOKEN = ".token";
     public static final String LEGACY_VALUE_TOKEN = "";
 
+    private String baseUrl = DEFAULT_BASE_URL;
+    private long requestTimeout = -1L;
+    private long serviceTimeout = -1L;
 
     public void setBaseUrl(String baseUrl) {
         if (baseUrl == null) {
@@ -92,6 +93,22 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
 
     public final String getBaseUrl() {
         return this.baseUrl;
+    }
+
+    public long getRequestTimeout() {
+        return requestTimeout;
+    }
+
+    public void setRequestTimeout(long requestTimeout) {
+        this.requestTimeout = requestTimeout;
+    }
+
+    public long getServiceTimeout() {
+        return serviceTimeout;
+    }
+
+    public void setServiceTimeout(long serviceTimeout) {
+        this.serviceTimeout = serviceTimeout;
     }
 
     protected final String getHtmlUrl() {
@@ -460,7 +477,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     /**
      * {@inheritDoc}
      */
-    public final void waitForService(final long serviceTimeout) throws Exception {
+    public final void waitForService() throws Exception {
         boolean checkTimeout = serviceTimeout >= 0L;
         int tries = 0;
         final long stop = System.currentTimeMillis() + serviceTimeout;

@@ -88,9 +88,10 @@ public abstract class AbstractPackageManagerClientITBase {
         TestBody.test(new PackmgrClientTestBody() {
             @Override protected void execute() throws Exception {
                 client.login("admin", "admin");
+                client.setServiceTimeout(5000L);
                 boolean ex = false;
                 try {
-                    client.waitForService(5000);
+                    client.waitForService();
                 } catch (Exception e) {
                     LOGGER.debug("Exception: " + e.getMessage());
                     ex = true;
@@ -103,7 +104,7 @@ public abstract class AbstractPackageManagerClientITBase {
 
                 long stop = System.currentTimeMillis() + 5000L;
                 try {
-                    client.waitForService(5000L);
+                    client.waitForService();
                 } catch (Exception e) {
                     LOGGER.debug("Exception: " + e.getMessage());
                     ex = true;

@@ -81,7 +81,9 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
                 .addParameter(LOGIN_PARAM_VALIDATE, LOGIN_VALUE_VALIDATE)
                 .addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET).build();
         try {
-            Response response = getClient().executeRequest(request).get(60000L, TimeUnit.MILLISECONDS);
+            ListenableFuture<Response> fResponse = getClient().executeRequest(request);
+            Response response = getRequestTimeout() >= 0L ?
+                    fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
 
             if (response.getStatusCode() == 200) {
                 this.setCookies(response.getCookies());
@@ -105,7 +107,9 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
                 .addParameter(LEGACY_PARAM_TOKEN, LEGACY_VALUE_TOKEN)
                 .addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET).build();
         try {
-            Response response = getClient().executeRequest(request).get(60000L, TimeUnit.MILLISECONDS);
+            ListenableFuture<Response> fResponse = getClient().executeRequest(request);
+            Response response = getRequestTimeout() >= 0L ?
+                    fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
 
             if (response.getStatusCode() == 200) {
                 this.setCookies(response.getCookies());
@@ -122,7 +126,7 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
     public boolean login(String username, Signer signer) throws IOException {
 
         Response response = AsyncUtil.login(getJsonUrl(),
-                                            signer, username, getClient(), true, 60000L);
+                                            signer, username, getClient(), getRequestTimeout() >= 0L, getRequestTimeout());
 
         if (response.getStatusCode() == 405) {
             this.setCookies(response.getCookies());
@@ -137,15 +141,16 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
     }
 
     private SimpleResponse executeSimpleRequest(Request request)
-            throws IOException, InterruptedException, ExecutionException {
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
-        return this.client.executeRequest(request, SIMPLE_RESPONSE_HANDLER).get();
+        ListenableFuture<SimpleResponse> fResponse = this.client.executeRequest(request, SIMPLE_RESPONSE_HANDLER);
+        return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
     }
 
     private DetailedResponse executeDetailedRequest(final Request request, final ResponseProgressListener listener)
-        throws IOException, InterruptedException, ExecutionException {
+        throws IOException, InterruptedException, ExecutionException, TimeoutException {
 
-        return this.client.executeRequest(request, new AsyncCompletionHandler<DetailedResponse>(){
+        ListenableFuture<DetailedResponse> fResponse = this.client.executeRequest(request, new AsyncCompletionHandler<DetailedResponse>(){
             @Override public DetailedResponse onCompleted(Response response) throws Exception {
                 return AbstractPackageManagerClient.parseDetailedResponse(
                         response.getStatusCode(),
@@ -155,7 +160,9 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
                         listener
                 );
             }
-        }).get();
+        });
+
+        return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
     }
 
     private AsyncHttpClient.BoundRequestBuilder addCookies(AsyncHttpClient.BoundRequestBuilder builder) {

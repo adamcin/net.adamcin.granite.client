@@ -2,12 +2,25 @@ package net.adamcin.granite.client.packman;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * This is the Public API for a CRX Package Manager Console client. It is intended to be used for implementation of
  * higher level deployment management workflows, and therefore it does not expose any connection details.
  */
 public interface PackageManagerClient {
+
+    /**
+     *
+     * @param requestTimeout
+     */
+    void setRequestTimeout(long requestTimeout);
+
+    /**
+     *
+     * @param serviceTimeout the amount of time to wait for service availability
+     */
+    void setServiceTimeout(long serviceTimeout);
 
     /**
      * Identify a CRX package based on its metadata
@@ -20,10 +33,9 @@ public interface PackageManagerClient {
     /**
      * Wait for service availability. Use this method between installing a package and any calling any other POST-based
      * service operation
-     * @param serviceTimeout the amount of time to wait for service availability
      * @throws Exception on timeout, interruption, or IOException
      */
-    void waitForService(long serviceTimeout) throws Exception;
+    void waitForService() throws Exception;
 
     /**
      * Checks if a package with the specified packageId has already been uploaded to the server. This does not indicate
