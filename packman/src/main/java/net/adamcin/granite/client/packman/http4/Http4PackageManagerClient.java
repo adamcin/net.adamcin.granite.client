@@ -2,6 +2,7 @@ package net.adamcin.granite.client.packman.http4;
 
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
@@ -30,6 +31,7 @@ import org.apache.http.protocol.HttpContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +48,20 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
                             statusLine.getReasonPhrase(),
                             response.getEntity().getContent(),
                             getResponseEncoding(response));
+                }
+            };
+
+    private static final ResponseHandler<ListResponse> LIST_RESPONSE_HANDLER =
+            new ResponseHandler<ListResponse>() {
+                public ListResponse handleResponse(final HttpResponse response)
+                        throws ClientProtocolException, IOException {
+                    StatusLine statusLine = response.getStatusLine();
+                    return parseListResponse(
+                            statusLine.getStatusCode(),
+                            statusLine.getReasonPhrase(),
+                            response.getEntity().getContent(),
+                            getResponseEncoding(response)
+                    );
                 }
             };
 
@@ -194,6 +210,10 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
             }, getHttpContext());
     }
 
+    private ListResponse executeListRequest(HttpUriRequest request) throws Exception {
+        return getClient().execute(request, LIST_RESPONSE_HANDLER, getHttpContext());
+    }
+
     @Override
     protected ResponseBuilder getResponseBuilder() {
         return new Http4ResponseBuilder();
@@ -202,7 +222,7 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
     class Http4ResponseBuilder extends ResponseBuilder {
 
         private PackId packId;
-        private Map<String, StringBody> stringParams = new HashMap<String, StringBody>();
+        private Map<String, BasicNameValuePair> stringParams = new HashMap<String, BasicNameValuePair>();
         private Map<String, FileBody> fileParams = new HashMap<String, FileBody>();
 
         @Override
@@ -213,9 +233,7 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
 
         @Override
         public ResponseBuilder withParam(String name, String value) {
-            try {
-                this.stringParams.put(name, new StringBody(value));
-            } catch (UnsupportedEncodingException e) { /* shouldn't happen */ }
+            this.stringParams.put(name, new BasicNameValuePair(name, value));
             return this;
         }
 
@@ -241,8 +259,8 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
 
             MultipartEntity entity = new MultipartEntity();
 
-            for (Map.Entry<String, StringBody> param : this.stringParams.entrySet()) {
-                entity.addPart(param.getKey(), param.getValue());
+            for (BasicNameValuePair param : this.stringParams.values()) {
+                entity.addPart(param.getName(), new StringBody(param.getValue()));
             }
 
             for (Map.Entry<String, FileBody> param : this.fileParams.entrySet()) {
@@ -260,8 +278,8 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
 
             MultipartEntity entity = new MultipartEntity();
 
-            for (Map.Entry<String, StringBody> param : this.stringParams.entrySet()) {
-                entity.addPart(param.getKey(), param.getValue());
+            for (BasicNameValuePair param : this.stringParams.values()) {
+                entity.addPart(param.getName(), new StringBody(param.getValue()));
             }
 
             for (Map.Entry<String, FileBody> param : this.fileParams.entrySet()) {
@@ -271,6 +289,27 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
             request.setEntity(entity);
 
             return executeDetailedRequest(request, listener);
+        }
+
+        @Override
+        protected ListResponse getListResponse() throws Exception {
+            StringBuilder qs = new StringBuilder();
+
+            qs.append("?");
+            if (packId != null) {
+                qs.append(KEY_PATH).append("=").append(
+                        URLEncoder.encode(packId.getInstallationPath() + ".zip", "utf-8")
+                );
+                qs.append("&");
+            }
+            for (NameValuePair pair : this.stringParams.values()) {
+                qs.append(URLEncoder.encode(pair.getName(), "utf-8")).append("=")
+                        .append(URLEncoder.encode(pair.getValue(), "utf-8")).append("&");
+            }
+
+            HttpGet request = new HttpGet(getListUrl() + qs.substring(0, qs.length() - 1));
+
+            return executeListRequest(request);
         }
     }
 }

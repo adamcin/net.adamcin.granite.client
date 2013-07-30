@@ -9,6 +9,7 @@ import com.ning.http.client.Response;
 import com.ning.http.multipart.FilePart;
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
@@ -31,6 +32,18 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
             new AsyncCompletionHandler<SimpleResponse>() {
                 @Override public SimpleResponse onCompleted(Response response) throws Exception {
                     return AbstractPackageManagerClient.parseSimpleResponse(
+                            response.getStatusCode(),
+                            response.getStatusText(),
+                            response.getResponseBodyAsStream(),
+                            getResponseEncoding(response)
+                    );
+                }
+            };
+
+    private static final AsyncCompletionHandler<ListResponse> LIST_RESPONSE_HANDLER =
+            new AsyncCompletionHandler<ListResponse>() {
+                @Override public ListResponse onCompleted(Response response) throws Exception {
+                    return AbstractPackageManagerClient.parseListResponse(
                             response.getStatusCode(),
                             response.getStatusText(),
                             response.getResponseBodyAsStream(),
@@ -165,6 +178,12 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
     }
 
+    private ListResponse executeListRequest(Request request)
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+
+        ListenableFuture<ListResponse> fResponse = this.client.executeRequest(request, LIST_RESPONSE_HANDLER);
+        return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
+    }
     private AsyncHttpClient.BoundRequestBuilder addCookies(AsyncHttpClient.BoundRequestBuilder builder) {
         if (builder != null) {
             for (Cookie cookie : this.cookies) {
@@ -213,6 +232,10 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         } else {
             return this.addCookies(this.client.preparePost(getHtmlUrl()));
         }
+    }
+
+    private AsyncHttpClient.BoundRequestBuilder buildListRequest() {
+        return this.addCookies(this.client.prepareGet(getListUrl()));
     }
 
     private static String getResponseEncoding(Response response) {
@@ -320,6 +343,20 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
             }
 
             return executeDetailedRequest(requestBuilder.build(), listener);
+        }
+
+        @Override
+        protected ListResponse getListResponse() throws Exception {
+            AsyncHttpClient.BoundRequestBuilder requestBuilder = buildListRequest();
+            if (packId != null) {
+                requestBuilder.addQueryParameter(KEY_PATH, packId.getInstallationPath() + ".zip");
+            }
+
+            for (Map.Entry<String, String> param : this.stringParams.entrySet()) {
+                requestBuilder.addQueryParameter(param.getKey(), param.getValue());
+            }
+
+            return executeListRequest(requestBuilder.build());
         }
     }
 }

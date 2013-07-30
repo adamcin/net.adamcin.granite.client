@@ -1,6 +1,7 @@
 package net.adamcin.granite.client.packman;
 
 import net.adamcin.sshkey.api.Signer;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -24,6 +25,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     public static final ResponseProgressListener DEFAULT_LISTENER = new DefaultResponseProgressListener();
 
     public static final String CONSOLE_UI_BASE_PATH = "/crx/packmgr/index.jsp";
+    public static final String CONSOLE_UI_LIST_PATH = "/crx/packmgr/list.jsp";
     public static final String SERVICE_BASE_PATH = "/crx/packmgr/service";
     public static final String HTML_SERVICE_PATH = SERVICE_BASE_PATH + "/console.html";
     public static final String JSON_SERVICE_PATH = SERVICE_BASE_PATH + "/exec.json";
@@ -43,6 +45,14 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     public static final String KEY_RECURSIVE = "recursive";
     public static final String KEY_AUTOSAVE = "autosave";
     public static final String KEY_ACHANDLING = "acHandling";
+    public static final String KEY_RESULTS = "results";
+    public static final String KEY_TOTAL = "total";
+    public static final String KEY_GROUP = "group";
+    public static final String KEY_NAME = "name";
+    public static final String KEY_VERSION = "version";
+    public static final String KEY_HAS_SNAPSHOT = "hasSnapshot";
+    public static final String KEY_NEEDS_REWRAP = "needsRewrap";
+    public static final String KEY_INCLUDE_VERSIONS = "includeVersions";
 
     public static final String CMD_CONTENTS = "contents";
     public static final String CMD_INSTALL = "install";
@@ -131,6 +141,10 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
             throw new NullPointerException("packageId");
         }
         return getJsonUrl() + packageId.getInstallationPath() + ".zip";
+    }
+
+    protected final String getListUrl() {
+        return getBaseUrl() + CONSOLE_UI_LIST_PATH;
     }
 
     public final String getConsoleUiUrl() {
@@ -330,6 +344,37 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         }
     }
 
+    protected static ListResponse parseListResponse(final int statusCode,
+                                                    final String statusText,
+                                                    final InputStream stream,
+                                                    final String charset)
+        throws IOException {
+
+        if (statusCode == 200) {
+            try {
+                ArrayList<ListResult> results = new ArrayList<ListResult>();
+                JSONTokener tokener = new JSONTokener(new InputStreamReader(stream, charset));
+
+                final JSONObject resultsObj = new JSONObject(tokener);
+                final JSONArray resultsArr = resultsObj.getJSONArray(KEY_RESULTS);
+
+                final int total = resultsObj.getInt(KEY_TOTAL);
+
+                for (int i = 0; i < resultsArr.length(); i++) {
+                    JSONObject result = resultsArr.getJSONObject(i);
+
+                    results.add(ListResultImpl.fromJSONObject(result));
+                }
+
+                return new ListResponseImpl(results, total);
+            } catch (JSONException e) {
+                throw new IOException("Exception encountered while parsing response.", e);
+            }
+        } else {
+            throw new IOException("Invalid status code: " + statusCode);
+        }
+    }
+
     protected static abstract class Either<T, U> {
         abstract boolean isLeft();
         T getLeft() { return null; }
@@ -453,6 +498,60 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         }
     }
 
+    static class ListResponseImpl implements ListResponse {
+        final List<ListResult> results;
+        final int total;
+
+        ListResponseImpl(List<ListResult> results, int total) {
+            this.results = results;
+            this.total = total;
+        }
+
+        public List<ListResult> getResults() {
+            return Collections.unmodifiableList(results);
+        }
+
+        public int getTotal() {
+            return total;
+        }
+
+        public boolean isSuccess() {
+            return true;
+        }
+
+        public String getMessage() {
+            throw new UnsupportedOperationException("getMessage not implemented");
+        }
+    }
+
+    static class ListResultImpl implements ListResult {
+        private final PackId packId;
+        private final boolean hasSnapshot;
+        private final boolean needsRewrap;
+
+        ListResultImpl(PackId packId, boolean hasSnapshot, boolean needsRewrap) {
+            this.packId = packId;
+            this.hasSnapshot = hasSnapshot;
+            this.needsRewrap = needsRewrap;
+        }
+
+        public PackId getPackId() { return this.packId; }
+        public boolean isHasSnapshot() { return this.hasSnapshot; }
+        public boolean isNeedsRewrap() { return this.needsRewrap; }
+
+        static ListResultImpl fromJSONObject(JSONObject result) throws JSONException {
+            PackId packId = PackId.createPackId(
+                    result.getString(KEY_GROUP),
+                    result.getString(KEY_NAME),
+                    result.optString(KEY_VERSION)
+            );
+
+            boolean hasSnapshot = result.has(KEY_HAS_SNAPSHOT) && result.getBoolean(KEY_HAS_SNAPSHOT);
+            boolean needsRewrap = result.has(KEY_NEEDS_REWRAP) && result.getBoolean(KEY_NEEDS_REWRAP);
+            return new ListResultImpl(packId, hasSnapshot, needsRewrap);
+        }
+    }
+
     protected static abstract class ResponseBuilder {
         protected abstract ResponseBuilder forPackId(PackId packId);
         protected abstract ResponseBuilder withParam(String name, String value);
@@ -460,6 +559,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         protected abstract ResponseBuilder withParam(String name, int value);
         protected abstract ResponseBuilder withParam(String name, File value, String mimeType) throws IOException;
         protected abstract SimpleResponse getSimpleResponse() throws Exception;
+        protected abstract ListResponse getListResponse() throws Exception;
         protected abstract DetailedResponse getDetailedResponse(ResponseProgressListener listener) throws Exception;
     }
 
@@ -499,11 +599,20 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
      * {@inheritDoc}
      */
     public final boolean existsOnServer(PackId packageId) throws Exception {
+        ListResponse response = list(packageId, false);
+        return response.getResults().size() > 0
+                && response.getResults().get(0).getPackId().equals(packageId);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public final ListResponse list(PackId packageId, boolean includeVersions) throws Exception {
         if (packageId == null) {
             throw new NullPointerException("packageId");
         }
         return getResponseBuilder().forPackId(packageId)
-                .withParam(KEY_CMD, CMD_CONTENTS).getSimpleResponse().isSuccess();
+                .withParam(KEY_INCLUDE_VERSIONS, Boolean.toString(includeVersions)).getListResponse();
     }
 
     /**

@@ -2,6 +2,7 @@ package net.adamcin.granite.client.packman.http3;
 
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
@@ -9,6 +10,7 @@ import net.adamcin.sshkey.api.Signer;
 import net.adamcin.sshkey.clientauth.http3.Http3Util;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -20,6 +22,7 @@ import org.apache.commons.httpclient.methods.multipart.StringPart;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -124,6 +127,14 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
                 listener);
     }
 
+    private ListResponse executeListRequest(final HttpMethodBase request) throws IOException {
+        int status = getClient().executeMethod(request);
+        return parseListResponse(status,
+                request.getStatusText(),
+                request.getResponseBodyAsStream(),
+                request.getResponseCharSet());
+    }
+
     @Override
     protected ResponseBuilder getResponseBuilder() {
         return new Http3ResponseBuilder();
@@ -132,7 +143,7 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
     class Http3ResponseBuilder extends ResponseBuilder {
 
         private PackId packId;
-        private Map<String, StringPart> stringParams = new HashMap<String, StringPart>();
+        private Map<String, NameValuePair> stringParams = new HashMap<String, NameValuePair>();
         private Map<String, FilePart> fileParams = new HashMap<String, FilePart>();
 
         @Override
@@ -143,7 +154,7 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
 
         @Override
         public ResponseBuilder withParam(String name, String value) {
-            this.stringParams.put(name, new StringPart(name, value));
+            this.stringParams.put(name, new NameValuePair(name, value));
             return this;
         }
 
@@ -169,8 +180,8 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
 
             List<Part> parts = new ArrayList<Part>();
 
-            for (Part part : this.stringParams.values()) {
-                parts.add(part);
+            for (NameValuePair part : this.stringParams.values()) {
+                parts.add(new StringPart(part.getName(), part.getValue()));
             }
 
             for (Part part : this.fileParams.values()) {
@@ -193,8 +204,8 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
 
             List<Part> parts = new ArrayList<Part>();
 
-            for (Part part : this.stringParams.values()) {
-                parts.add(part);
+            for (NameValuePair part : this.stringParams.values()) {
+                parts.add(new StringPart(part.getName(), part.getValue()));
             }
 
             for (Part part : this.fileParams.values()) {
@@ -210,6 +221,32 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
                 request.releaseConnection();
             }
 
+        }
+
+        @Override
+        protected ListResponse getListResponse() throws Exception {
+
+            StringBuilder qs = new StringBuilder();
+
+            qs.append("?");
+            if (packId != null) {
+                qs.append(KEY_PATH).append("=").append(
+                        URLEncoder.encode(packId.getInstallationPath() + ".zip", "utf-8")
+                );
+                qs.append("&");
+            }
+            for (NameValuePair pair : this.stringParams.values()) {
+                qs.append(URLEncoder.encode(pair.getName(), "utf-8")).append("=")
+                        .append(URLEncoder.encode(pair.getValue(), "utf-8")).append("&");
+            }
+
+            GetMethod request = new GetMethod(getListUrl() + qs.substring(0, qs.length() - 1));
+
+            try {
+                return executeListRequest(request);
+            } finally {
+                request.releaseConnection();
+            }
         }
     }
 }

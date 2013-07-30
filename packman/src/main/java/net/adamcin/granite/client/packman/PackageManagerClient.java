@@ -2,7 +2,7 @@ package net.adamcin.granite.client.packman;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
+import java.util.List;
 
 /**
  * This is the Public API for a CRX Package Manager Console client. It is intended to be used for implementation of
@@ -45,6 +45,8 @@ public interface PackageManagerClient {
      * @throws Exception
      */
     boolean existsOnServer(PackId packageId) throws Exception;
+
+    ListResponse list(PackId packageId, boolean includeVersions) throws Exception;
 
     /**
      * Upload a package to the server. Does not install the package once uploaded.
@@ -130,4 +132,5 @@ public interface PackageManagerClient {
     DetailedResponse uninstall(PackId packageId) throws Exception;
 
     DetailedResponse uninstall(PackId packageId, ResponseProgressListener listener) throws Exception;
+
 }
