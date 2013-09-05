@@ -6,10 +6,13 @@ import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
+import net.adamcin.granite.client.packman.UnauthorizedException;
 import net.adamcin.sshkey.api.Signer;
 import net.adamcin.sshkey.clientauth.http3.Http3Util;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.HttpState;
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
@@ -58,7 +61,7 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
             int status = getClient().executeMethod(request);
 
             if (status == 401) {
-                throw new IOException("401 Unauthorized");
+                throw new UnauthorizedException("401 Unauthorized");
             } else {
                 return right(Exception.class, status == 405);
             }
@@ -108,6 +111,10 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
     @Override
     public boolean login(String username, Signer signer) throws IOException {
         return Http3Util.login(getJsonUrl(), signer, username, 405, getClient());
+    }
+
+    private void setState(HttpState state) {
+        getClient().setState(state);
     }
 
     private SimpleResponse executeSimpleRequest(final HttpMethodBase request) throws IOException {

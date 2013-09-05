@@ -1,5 +1,7 @@
 package net.adamcin.granite.client.packman;
 
+import java.io.IOException;
+
 /**
  * Created with IntelliJ IDEA.
  * User: madamcin
@@ -7,7 +9,7 @@ package net.adamcin.granite.client.packman;
  * Time: 2:03 PM
  * To change this template use File | Settings | File Templates.
  */
-public final class UnauthorizedException extends Exception {
+public final class UnauthorizedException extends IOException {
 
     public UnauthorizedException() {
     }

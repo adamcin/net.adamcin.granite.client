@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -165,7 +166,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
 
     /**
      * The CRX PackageManagerServlet does not support GET requests. The only use for GET is to check service
-     * availability. If anything other than 405 is returned, the service should be considered unavailable.
+     * availability. If anything other than 401 or 405 is returned, the service should be considered unavailable.
      * @param checkTimeout set to true to enforce a timeout
      * @param timeoutRemaining remaining timeout in milliseconds
      * @return either a throwable or a boolean

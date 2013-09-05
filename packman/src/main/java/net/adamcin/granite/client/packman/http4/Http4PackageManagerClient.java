@@ -6,6 +6,7 @@ import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
+import net.adamcin.granite.client.packman.UnauthorizedException;
 import net.adamcin.sshkey.api.Signer;
 import net.adamcin.sshkey.clientauth.http4.Http4Util;
 import org.apache.http.Header;
@@ -70,7 +71,7 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
                 public HttpResponse handleResponse(final HttpResponse response)
                         throws ClientProtocolException, IOException {
                     if (response.getStatusLine().getStatusCode() == 401) {
-                        throw new IOException("401 Unauthorized");
+                        throw new UnauthorizedException("401 Unauthorized");
                     } else {
                         return response;
                     }

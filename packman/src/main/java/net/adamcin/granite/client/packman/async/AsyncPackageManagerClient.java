@@ -13,11 +13,13 @@ import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
+import net.adamcin.granite.client.packman.UnauthorizedException;
 import net.adamcin.sshkey.api.Signer;
 import net.adamcin.sshkey.clientauth.async.AsyncUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -258,7 +260,7 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         @Override
         public final T onCompleted(Response response) throws Exception {
             if (response.getStatusCode() == 401) {
-                throw new IOException(Integer.toString(response.getStatusCode()) + " " + response.getStatusText());
+                throw new UnauthorizedException(Integer.toString(response.getStatusCode()) + " " + response.getStatusText());
             } else {
                 return onAuthorized(response);
             }
