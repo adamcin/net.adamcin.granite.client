@@ -61,6 +61,14 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
                 }
             };
 
+    private final AsyncCompletionHandler<Response> ANY_RESPONSE_HANDLER =
+            new AsyncCompletionHandler<Response>() {
+                @Override
+                public Response onCompleted(Response response) throws Exception {
+                    return response;
+                }
+            };
+
     private final AsyncHttpClient client;
 
     private final List<Cookie> cookies = new ArrayList<Cookie>();
@@ -151,6 +159,10 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         }
     }
 
+    private ListenableFuture<Response> executeAnyRequest(Request request) throws IOException {
+        return this.client.executeRequest(request, ANY_RESPONSE_HANDLER);
+    }
+
     private ListenableFuture<Response> executeRequest(Request request) throws IOException {
         return this.client.executeRequest(request, AUTHORIZED_RESPONSE_HANDLER);
     }
@@ -203,7 +215,7 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         final Request request = this.addCookies(this.client.prepareGet(getJsonUrl())).build();
 
         try {
-            final ListenableFuture<Response> future = executeRequest(request);
+            final ListenableFuture<Response> future = executeAnyRequest(request);
 
             Response response = null;
             if (checkTimeout) {
@@ -212,7 +224,11 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
                 response = future.get();
             }
 
-            return right(Exception.class, response.getStatusCode() == 405);
+            if (response.getStatusCode() == 401) {
+                return left(new UnauthorizedException("401 Unauthorized. Please login."), Boolean.class);
+            } else {
+                return right(Exception.class, response.getStatusCode() == 405);
+            }
         } catch (TimeoutException e) {
             return left(new IOException("Service timeout exceeded."), Boolean.class);
         } catch (Exception e) {
