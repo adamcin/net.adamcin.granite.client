@@ -9,7 +9,6 @@ import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.granite.client.packman.UnauthorizedException;
 import net.adamcin.sshkey.api.Signer;
 import net.adamcin.sshkey.clientauth.http3.Http3Util;
-import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpState;
@@ -61,7 +60,7 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
             int status = getClient().executeMethod(request);
 
             if (status == 401) {
-                throw new UnauthorizedException("401 Unauthorized");
+                return left(new UnauthorizedException("401 Unauthorized"), Boolean.class);
             } else {
                 return right(Exception.class, status == 405);
             }
