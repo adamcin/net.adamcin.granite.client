@@ -67,7 +67,8 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
 
     private static final Pattern PATTERN_TITLE = Pattern.compile("^<body><h2>([^<]*)</h2>");
     private static final Pattern PATTERN_LOG = Pattern.compile("^([^<]*<br>)+");
-    private static final Pattern PATTERN_MESSAGE = Pattern.compile("<span class=\"([^\"]*)\"><b>([^<]*)</b>&nbsp;([^<(]*)(\\([^)]*\\))?</span>");
+    //private static final Pattern PATTERN_MESSAGE = Pattern.compile("<span class=\"([^\"]*)\"><b>([^<]*)</b>&nbsp;([^<(]*)(\\([^)]*\\))?</span>");
+    private static final Pattern PATTERN_MESSAGE = Pattern.compile("<span class=\"([^\"]*)\"><b>([^<]*)</b>&nbsp;([^<(]*)(.*)$");
     private static final Pattern PATTERN_SUCCESS = Pattern.compile("^</div><br>(.*) in (\\d+)ms\\.<br>");
 
     public static final String LOGIN_PATH = "/crx/j_security_check";
@@ -227,12 +228,28 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         }
     }
 
-    private static void handleMessage(String line, List<String> progressErrors, ResponseProgressListener listener) {
+    private static void handleMessage(String line, List<String> progressErrors, ResponseProgressListener listener, BufferedReader reader) {
         Matcher messageMatcher = PATTERN_MESSAGE.matcher(line);
         if (messageMatcher.find()) {
             String action = messageMatcher.group(1);
             String path = messageMatcher.group(3);
             String error = messageMatcher.group(4);
+            boolean isEndOfMessage = error.endsWith("</span><br>");
+            while (!isEndOfMessage) {
+                try {
+                    String addtLine = reader.readLine();
+                    if (addtLine.endsWith("</span><br>")) {
+                        isEndOfMessage = true;
+                    }
+                    error = error + "\r\n" + addtLine;
+                } catch (IOException e) {
+                    isEndOfMessage = true;
+                    e.printStackTrace(System.err);
+                }
+            }
+            if (error.lastIndexOf("</span><br>") >= 0) {
+                error = error.substring(0, error.lastIndexOf("</span><br>"));
+            }
             if ("E".equals(action)) {
                 progressErrors.add(path + " " + error);
                 listener.onError(path.trim(), error.substring(1, error.length()-1));
@@ -300,7 +317,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
                             handleLogs(line, _listener);
 
                             // handle progress message
-                            handleMessage(line, progressErrors, _listener);
+                            handleMessage(line, progressErrors, _listener, reader);
 
                             if (handleBeginFailure(line)) {
                                 isFailure = true;
