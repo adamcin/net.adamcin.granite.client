@@ -235,21 +235,23 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
             String path = messageMatcher.group(3);
             String error = messageMatcher.group(4);
             boolean isEndOfMessage = error.endsWith("</span><br>");
-            while (!isEndOfMessage) {
-                try {
+
+            try {
+                while (!isEndOfMessage) {
                     String addtLine = reader.readLine();
                     if (addtLine.endsWith("</span><br>")) {
                         isEndOfMessage = true;
                     }
                     error = error + "\r\n" + addtLine;
-                } catch (IOException e) {
-                    isEndOfMessage = true;
-                    e.printStackTrace(System.err);
                 }
+            } catch (IOException e) {
+                e.printStackTrace(System.err);
             }
+
             if (error.lastIndexOf("</span><br>") >= 0) {
                 error = error.substring(0, error.lastIndexOf("</span><br>"));
             }
+
             if ("E".equals(action)) {
                 progressErrors.add(path + " " + error);
                 listener.onError(path.trim(), error.substring(1, error.length()-1));
