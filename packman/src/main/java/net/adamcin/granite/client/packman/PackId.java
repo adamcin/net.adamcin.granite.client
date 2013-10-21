@@ -1,7 +1,8 @@
 package net.adamcin.granite.client.packman;
 
-import com.day.jcr.vault.maven.pack.PackageId;
-import com.day.jcr.vault.maven.pack.Version;
+
+import org.apache.jackrabbit.vault.packaging.PackageId;
+import org.apache.jackrabbit.vault.packaging.Version;
 
 import java.io.File;
 import java.io.IOException;

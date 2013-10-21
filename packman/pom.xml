@@ -89,40 +89,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.7</version>
-                <executions>
-                    <execution>
-                        <id>extract-classes-from-content-package-maven-plugin</id>
-                        <phase>process-sources</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>com.day.jcr.vault</groupId>
-                                    <artifactId>content-package-maven-plugin</artifactId>
-                                    <version>0.0.18</version>
-                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                                    <includes>
-                                        com/day/jcr/vault/maven/pack/Dependency.class,
-                                        com/day/jcr/vault/maven/pack/Filter.class,
-                                        com/day/jcr/vault/maven/pack/IncludeExcludeList.class,
-                                        com/day/jcr/vault/maven/pack/PackageDependency.class,
-                                        com/day/jcr/vault/maven/pack/PackageId.class,
-                                        com/day/jcr/vault/maven/pack/Version.class,
-                                        com/day/jcr/vault/maven/pack/VersionRange.class,
-                                        com/day/jcr/vault/maven/pack/impl/**
-                                    </includes>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
 				<version>2.3.7</version>
@@ -138,7 +104,7 @@
                             org.apache.commons.httpclient.*;resolution=optional,
                             *
                         </Import-Package>
-						<Embed-Dependency>json</Embed-Dependency>
+						<Embed-Dependency>json;org.apache.jackrabbit.vault</Embed-Dependency>
                     </instructions>
 					<obrRepository>false</obrRepository>
                 </configuration>
@@ -239,6 +205,17 @@
             <groupId>net.adamcin.sshkey</groupId>
             <artifactId>sshkey-clientauth</artifactId>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit.vault</groupId>
+            <artifactId>org.apache.jackrabbit.vault</artifactId>
+            <version>3.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.day.jcr.vault</groupId>
+            <artifactId>content-package-maven-plugin</artifactId>
+            <version>0.0.20</version>
         </dependency>
         <dependency>
             <groupId>com.ning</groupId>
