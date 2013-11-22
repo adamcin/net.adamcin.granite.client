@@ -104,7 +104,7 @@
                             org.apache.commons.httpclient.*;resolution=optional,
                             *
                         </Import-Package>
-						<Embed-Dependency>json;org.apache.jackrabbit.vault</Embed-Dependency>
+						<Embed-Dependency>json</Embed-Dependency>
                     </instructions>
 					<obrRepository>false</obrRepository>
                 </configuration>
@@ -210,13 +210,9 @@
             <groupId>org.apache.jackrabbit.vault</groupId>
             <artifactId>org.apache.jackrabbit.vault</artifactId>
             <version>3.0.0</version>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>com.day.jcr.vault</groupId>
-            <artifactId>content-package-maven-plugin</artifactId>
-            <version>0.0.20</version>
-        </dependency>
+
         <dependency>
             <groupId>com.ning</groupId>
             <artifactId>async-http-client</artifactId>
@@ -263,7 +259,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-			<version>${slf4j.version}</version>
+            <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
