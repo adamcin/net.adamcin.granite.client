@@ -2,7 +2,6 @@ package net.adamcin.granite.client.packman;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * This is the Public API for a CRX Package Manager Console client. It is intended to be used for implementation of

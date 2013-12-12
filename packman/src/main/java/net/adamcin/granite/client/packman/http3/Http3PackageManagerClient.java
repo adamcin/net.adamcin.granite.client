@@ -7,8 +7,6 @@ import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.granite.client.packman.UnauthorizedException;
-import net.adamcin.sshkey.api.Signer;
-import net.adamcin.sshkey.clientauth.http3.Http3Util;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.HttpState;
@@ -105,11 +103,6 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
         request.addParameter(LOGIN_PARAM_CHARSET, LOGIN_VALUE_CHARSET);
 
         return getClient().executeMethod(request) == 200;
-    }
-
-    @Override
-    public boolean login(String username, Signer signer) throws IOException {
-        return Http3Util.login(getJsonUrl(), signer, username, 405, getClient());
     }
 
     private void setState(HttpState state) {

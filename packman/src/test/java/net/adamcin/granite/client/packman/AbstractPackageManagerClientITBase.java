@@ -25,6 +25,8 @@ public abstract class AbstractPackageManagerClientITBase {
 
                 identOs = new FileOutputStream(packageFile);
                 IOUtils.copy(testPack, identOs);
+            } else {
+                LOGGER.error("[generateTestPackage] failed to generate test package: {}", packageFile);
             }
         } finally {
             IOUtils.closeQuietly(testPack);
@@ -58,15 +60,15 @@ public abstract class AbstractPackageManagerClientITBase {
             @Override protected void execute() throws Exception {
                 client.login("admin", "admin");
                 File nonExist = new File("target/non-exist-package.zip");
-                boolean fileNotFoundThrown = false;
+                boolean ioExceptionThrown = false;
 
                 try {
                     client.identify(nonExist);
-                } catch (FileNotFoundException e) {
-                    fileNotFoundThrown = true;
+                } catch (IOException e) {
+                    ioExceptionThrown = true;
                 }
 
-                assertTrue("identify throws correct exception for non-existent file", fileNotFoundThrown);
+                assertTrue("identify throws correct exception for non-existent file", ioExceptionThrown);
 
                 File identifiable = new File("target/identifiable-package.zip");
                 generateTestPackage(identifiable);

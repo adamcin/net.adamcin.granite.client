@@ -151,7 +151,7 @@
             <plugin>
                 <groupId>com.github.github</groupId>
                 <artifactId>site-maven-plugin</artifactId>
-                <version>0.8</version>
+                <version>0.9</version>
                 <configuration>
                     <message>Creating site for ${project.artifactId} ${project.version}</message>
                     <noJekyll>true</noJekyll>
@@ -196,16 +196,7 @@
     </profiles>
 
     <dependencies>
-        <dependency>
-            <groupId>net.adamcin.sshkey</groupId>
-            <artifactId>sshkey-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.adamcin.sshkey</groupId>
-            <artifactId>sshkey-clientauth</artifactId>
-            <scope>compile</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.jackrabbit.vault</groupId>
             <artifactId>org.apache.jackrabbit.vault</artifactId>

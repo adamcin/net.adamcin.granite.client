@@ -1,6 +1,5 @@
 package net.adamcin.granite.client.packman;
 
-import net.adamcin.sshkey.api.Signer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -11,7 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -162,8 +160,6 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     }
 
     public abstract boolean login(String username, String password) throws IOException;
-
-    public abstract boolean login(String username, Signer signer) throws IOException;
 
     /**
      * The CRX PackageManagerServlet does not support GET requests. The only use for GET is to check service

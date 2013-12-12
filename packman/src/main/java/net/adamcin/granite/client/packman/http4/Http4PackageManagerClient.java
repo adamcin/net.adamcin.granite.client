@@ -7,8 +7,6 @@ import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.granite.client.packman.UnauthorizedException;
-import net.adamcin.sshkey.api.Signer;
-import net.adamcin.sshkey.clientauth.http4.Http4Util;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -31,7 +29,6 @@ import org.apache.http.protocol.HttpContext;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -167,11 +164,6 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
         } catch (Exception e) {
             throw new IOException("Failed to login using provided credentials");
         }
-    }
-
-    @Override
-    public boolean login(String username, Signer signer) throws IOException {
-        return Http4Util.login(getJsonUrl(), signer, username, 405, getClient(), getHttpContext());
     }
 
     @Override

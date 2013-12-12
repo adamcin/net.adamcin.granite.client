@@ -14,12 +14,9 @@ import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
 import net.adamcin.granite.client.packman.SimpleResponse;
 import net.adamcin.granite.client.packman.UnauthorizedException;
-import net.adamcin.sshkey.api.Signer;
-import net.adamcin.sshkey.clientauth.async.AsyncUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -143,20 +140,6 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         }
 
         return false;
-    }
-
-    @Override
-    public boolean login(String username, Signer signer) throws IOException {
-
-        Response response = AsyncUtil.login(getJsonUrl(),
-                                            signer, username, getClient(), getRequestTimeout() >= 0L, getRequestTimeout());
-
-        if (response.getStatusCode() == 405) {
-            this.setCookies(response.getCookies());
-            return true;
-        } else {
-            return false;
-        }
     }
 
     private ListenableFuture<Response> executeAnyRequest(Request request) throws IOException {
