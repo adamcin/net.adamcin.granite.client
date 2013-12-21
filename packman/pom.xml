@@ -109,45 +109,6 @@
 					<obrRepository>false</obrRepository>
                 </configuration>
             </plugin>
-			<plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.0</version>
-                <configuration>
-                    <inputEncoding>utf-8</inputEncoding>
-                    <reportPlugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-project-info-reports-plugin</artifactId>
-                            <version>2.4</version>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-javadoc-plugin</artifactId>
-                            <version>2.9</version>
-                            <configuration>
-                                <minmemory>128m</minmemory>
-                                <maxmemory>512m</maxmemory>
-                                <useStandardDocletOptions>true</useStandardDocletOptions>
-                                <charset>${encoding}</charset>
-                                <encoding>${encoding}</encoding>
-                                <docencoding>${encoding}</docencoding>
-                                <docfilessubdirs>true</docfilessubdirs>
-                                <breakiterator>true</breakiterator>
-                                <version>true</version>
-                                <author>true</author>
-                                <keywords>true</keywords>
-                                <attach>false</attach>
-                                <links>
-                                    <link>http://java.sun.com/j2se/${maven.compiler.source}/docs/api/</link>
-                                    <link>http://slf4j.org/api/</link>
-                                </links>
-                            </configuration>
-                        </plugin>
-						
-                    </reportPlugins>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>com.github.github</groupId>
                 <artifactId>site-maven-plugin</artifactId>
