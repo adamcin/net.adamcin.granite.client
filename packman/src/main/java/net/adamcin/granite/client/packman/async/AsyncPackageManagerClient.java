@@ -9,6 +9,7 @@ import com.ning.http.client.Response;
 import com.ning.http.multipart.FilePart;
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.DownloadResponse;
 import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
@@ -50,6 +51,22 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
                     );
                 }
             };
+
+    private static class DownloadResponseHandler extends AsyncCompletionHandler<DownloadResponse> {
+        final File outputFile;
+
+        private DownloadResponseHandler(File outputFile) {
+            this.outputFile = outputFile;
+        }
+
+        @Override public DownloadResponse onCompleted(Response response) throws Exception {
+            return AbstractPackageManagerClient.parseDownloadResponse(
+                    response.getStatusCode(),
+                    response.getStatusText(),
+                    response.getResponseBodyAsStream(),
+                    this.outputFile);
+        }
+    }
 
     private final AsyncCompletionHandler<Response> AUTHORIZED_RESPONSE_HANDLER =
             new AuthorizedResponseHandler<Response>() {
@@ -181,6 +198,14 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         ListenableFuture<ListResponse> fResponse = this.client.executeRequest(request, LIST_RESPONSE_HANDLER);
         return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
     }
+
+    private DownloadResponse executeDownloadRequest(Request request, File outputFile)
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+
+        ListenableFuture<DownloadResponse> fResponse = this.client.executeRequest(request, new DownloadResponseHandler(outputFile));
+        return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
+    }
+
     private AsyncHttpClient.BoundRequestBuilder addCookies(AsyncHttpClient.BoundRequestBuilder builder) {
         if (builder != null) {
             for (Cookie cookie : this.cookies) {
@@ -239,14 +264,20 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         return this.addCookies(this.client.prepareGet(getListUrl()));
     }
 
+    private AsyncHttpClient.BoundRequestBuilder buildDownloadRequest() {
+        return this.addCookies(this.client.prepareGet(getDownloadUrl()));
+    }
+
     private static String getResponseEncoding(Response response) {
         String encoding = response.getHeader("Content-Encoding");
 
         if (encoding == null) {
             String contentType = response.getContentType();
-            int charsetBegin = contentType.toLowerCase().indexOf(";charset=");
-            if (charsetBegin >= 0) {
-                encoding = contentType.substring(charsetBegin + ";charset=".length());
+            if (contentType != null) {
+                int charsetBegin = contentType.toLowerCase().indexOf(";charset=");
+                if (charsetBegin >= 0) {
+                    encoding = contentType.substring(charsetBegin + ";charset=".length());
+                }
             }
         }
 
@@ -358,6 +389,20 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
             }
 
             return executeListRequest(requestBuilder.build());
+        }
+
+        @Override
+        protected DownloadResponse getDownloadResponse(File file) throws Exception {
+            AsyncHttpClient.BoundRequestBuilder requestBuilder = buildDownloadRequest();
+            if (packId != null) {
+                requestBuilder.addQueryParameter(KEY_PATH, packId.getInstallationPath() + ".zip");
+            }
+
+            for (Map.Entry<String, String> param : this.stringParams.entrySet()) {
+                requestBuilder.addQueryParameter(param.getKey(), param.getValue());
+            }
+
+            return executeDownloadRequest(requestBuilder.build(), file);
         }
     }
 }

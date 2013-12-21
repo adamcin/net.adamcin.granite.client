@@ -2,6 +2,7 @@ package net.adamcin.granite.client.packman.http3;
 
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.DownloadResponse;
 import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
@@ -134,6 +135,14 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
                 request.getResponseCharSet());
     }
 
+    private DownloadResponse executeDownloadRequest(final HttpMethodBase request, final File outputFile) throws IOException {
+        int status = getClient().executeMethod(request);
+        return parseDownloadResponse(status,
+                                     request.getStatusText(),
+                                     request.getResponseBodyAsStream(),
+                                     outputFile);
+    }
+
     @Override
     protected ResponseBuilder getResponseBuilder() {
         return new Http3ResponseBuilder();
@@ -243,6 +252,31 @@ public final class Http3PackageManagerClient extends AbstractPackageManagerClien
 
             try {
                 return executeListRequest(request);
+            } finally {
+                request.releaseConnection();
+            }
+        }
+
+        @Override
+        protected DownloadResponse getDownloadResponse(File outputFile) throws Exception {
+            StringBuilder qs = new StringBuilder();
+
+            qs.append("?");
+            if (packId != null) {
+                qs.append(KEY_PATH).append("=").append(
+                        URLEncoder.encode(packId.getInstallationPath() + ".zip", "utf-8")
+                );
+                qs.append("&");
+            }
+            for (NameValuePair pair : this.stringParams.values()) {
+                qs.append(URLEncoder.encode(pair.getName(), "utf-8")).append("=")
+                        .append(URLEncoder.encode(pair.getValue(), "utf-8")).append("&");
+            }
+
+            GetMethod request = new GetMethod(getDownloadUrl() + qs.substring(0, qs.length() - 1));
+
+            try {
+                return executeDownloadRequest(request, outputFile);
             } finally {
                 request.releaseConnection();
             }

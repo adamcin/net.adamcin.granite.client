@@ -21,6 +21,17 @@ public interface PackageManagerClient {
      */
     void setServiceTimeout(long serviceTimeout);
 
+    String getBaseUrl();
+
+    String getJsonUrl();
+
+    /**
+     *
+     * @param packageId
+     * @return
+     */
+    String getConsoleUiUrl(PackId packageId);
+
     /**
      * Identify a CRX package based on its metadata
      * @param file a {@link File} representing the package
@@ -45,6 +56,28 @@ public interface PackageManagerClient {
      */
     boolean existsOnServer(PackId packageId) throws Exception;
 
+    /**
+     * List all packages
+     * @return list of packages
+     * @throws Exception
+     */
+    ListResponse list() throws Exception;
+
+    /**
+     * List all packages and filter by {@code query}
+     * @param query can be null or empty string
+     * @return list of packages filtered by {@code query}
+     * @throws Exception
+     */
+    ListResponse list(String query) throws Exception;
+
+    /**
+     * List one package matching {@code packageId} or many packages matching the {@code packageId} up to the first hyphen.
+     * @param packageId
+     * @param includeVersions
+     * @return
+     * @throws Exception
+     */
     ListResponse list(PackId packageId, boolean includeVersions) throws Exception;
 
     /**
@@ -58,6 +91,24 @@ public interface PackageManagerClient {
      * @throws Exception
      */
     SimpleResponse upload(File file, boolean force, PackId packageId) throws Exception;
+
+    /**
+     * Downloads the package identified by {@code packageId} to the absolute path specified by {@code toFile}
+     * @param packageId
+     * @param toFile
+     * @return
+     * @throws Exception
+     */
+    DownloadResponse download(PackId packageId, File toFile) throws Exception;
+
+    /**
+     * Downloads the package to a qualified relative path under {@code toDirectory}
+     * @param packageId
+     * @param toDirectory
+     * @return
+     * @throws Exception
+     */
+    DownloadResponse downloadToDirectory(PackId packageId, File toDirectory) throws Exception;
 
     /**
      * Delete a package from the server. Does not uninstall the package.
@@ -112,7 +163,7 @@ public interface PackageManagerClient {
     DetailedResponse dryRun(PackId packageId) throws Exception;
 
     /**
-     *
+     * Performs a dryRun of an installation of the specified package
      * @param packageId
      * @param listener
      * @return

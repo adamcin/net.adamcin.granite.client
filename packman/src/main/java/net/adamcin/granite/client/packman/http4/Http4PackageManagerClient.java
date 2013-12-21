@@ -2,6 +2,7 @@ package net.adamcin.granite.client.packman.http4;
 
 import net.adamcin.granite.client.packman.AbstractPackageManagerClient;
 import net.adamcin.granite.client.packman.DetailedResponse;
+import net.adamcin.granite.client.packman.DownloadResponse;
 import net.adamcin.granite.client.packman.ListResponse;
 import net.adamcin.granite.client.packman.PackId;
 import net.adamcin.granite.client.packman.ResponseProgressListener;
@@ -62,6 +63,24 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
                     );
                 }
             };
+
+    private static class DownloadResponseHandler implements ResponseHandler<DownloadResponse> {
+        private final File outputFile;
+
+        private DownloadResponseHandler(File outputFile) {
+            this.outputFile = outputFile;
+        }
+
+        public DownloadResponse handleResponse(final HttpResponse response)
+                throws ClientProtocolException, IOException {
+            StatusLine statusLine = response.getStatusLine();
+            return parseDownloadResponse(
+                    statusLine.getStatusCode(),
+                    statusLine.getReasonPhrase(),
+                    response.getEntity().getContent(),
+                    this.outputFile);
+        }
+    }
 
     private static final ResponseHandler<HttpResponse> AUTHORIZED_RESPONSE_HANDLER =
             new ResponseHandler<HttpResponse>() {
@@ -207,6 +226,10 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
         return getClient().execute(request, LIST_RESPONSE_HANDLER, getHttpContext());
     }
 
+    private DownloadResponse executeDownloadRequest(HttpUriRequest request, File outputFile) throws Exception {
+        return getClient().execute(request, new DownloadResponseHandler(outputFile), getHttpContext());
+    }
+
     @Override
     protected ResponseBuilder getResponseBuilder() {
         return new Http4ResponseBuilder();
@@ -303,6 +326,27 @@ public final class Http4PackageManagerClient extends AbstractPackageManagerClien
             HttpGet request = new HttpGet(getListUrl() + qs.substring(0, qs.length() - 1));
 
             return executeListRequest(request);
+        }
+
+        @Override
+        protected DownloadResponse getDownloadResponse(File outputFile) throws Exception {
+            StringBuilder qs = new StringBuilder();
+
+            qs.append("?");
+            if (packId != null) {
+                qs.append(KEY_PATH).append("=").append(
+                        URLEncoder.encode(packId.getInstallationPath() + ".zip", "utf-8")
+                );
+                qs.append("&");
+            }
+            for (NameValuePair pair : this.stringParams.values()) {
+                qs.append(URLEncoder.encode(pair.getName(), "utf-8")).append("=")
+                        .append(URLEncoder.encode(pair.getValue(), "utf-8")).append("&");
+            }
+
+            HttpGet request = new HttpGet(getDownloadUrl() + qs.substring(0, qs.length() - 1));
+
+            return executeDownloadRequest(request, outputFile);
         }
     }
 }

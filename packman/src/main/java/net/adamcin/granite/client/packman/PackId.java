@@ -11,8 +11,11 @@ import java.io.Serializable;
 import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class PackId implements Serializable, Comparable<PackId> {
+    public static final Pattern PID_PATTERN = Pattern.compile("^([^:]+):([^:]+)(:([^:]*))?$");
 
     public static final String PROPERTIES_ENTRY = "META-INF/vault/properties.xml";
     public static final String PROP_GROUP = "group";
@@ -165,5 +168,18 @@ public final class PackId implements Serializable, Comparable<PackId> {
         } else {
             return null;
         }
+    }
+
+    public static PackId parsePid(final String pid) {
+        if (pid != null) {
+            Matcher matcher = PID_PATTERN.matcher(pid.trim());
+            if (matcher.find()) {
+                String group = matcher.group(1);
+                String name = matcher.group(2);
+                String version = matcher.groupCount() >= 4 ? matcher.group(4) : null;
+                return createPackId(group, name, version);
+            }
+        }
+        return null;
     }
 }

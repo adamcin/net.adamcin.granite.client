@@ -5,11 +5,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +29,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
 
     public static final String CONSOLE_UI_BASE_PATH = "/crx/packmgr/index.jsp";
     public static final String CONSOLE_UI_LIST_PATH = "/crx/packmgr/list.jsp";
+    public static final String CONSOLE_UI_DOWNLOAD_PATH = "/crx/packmgr/download.jsp";
     public static final String SERVICE_BASE_PATH = "/crx/packmgr/service";
     public static final String HTML_SERVICE_PATH = SERVICE_BASE_PATH + "/console.html";
     public static final String JSON_SERVICE_PATH = SERVICE_BASE_PATH + "/exec.json";
@@ -52,6 +57,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     public static final String KEY_HAS_SNAPSHOT = "hasSnapshot";
     public static final String KEY_NEEDS_REWRAP = "needsRewrap";
     public static final String KEY_INCLUDE_VERSIONS = "includeVersions";
+    public static final String KEY_QUERY = "q";
 
     public static final String CMD_CONTENTS = "contents";
     public static final String CMD_INSTALL = "install";
@@ -132,7 +138,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         return getHtmlUrl() + packageId.getInstallationPath() + ".zip";
     }
 
-    protected final String getJsonUrl() {
+    public final String getJsonUrl() {
         return getBaseUrl() + JSON_SERVICE_PATH;
     }
 
@@ -145,6 +151,10 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
 
     protected final String getListUrl() {
         return getBaseUrl() + CONSOLE_UI_LIST_PATH;
+    }
+
+    protected final String getDownloadUrl() {
+        return getBaseUrl() + CONSOLE_UI_DOWNLOAD_PATH;
     }
 
     public final String getConsoleUiUrl() {
@@ -391,6 +401,43 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         }
     }
 
+    protected static DownloadResponse parseDownloadResponse(final int statusCode,
+                                                    final String statusText,
+                                                    final InputStream stream,
+                                                    final File outputFile)
+            throws IOException {
+
+        if (outputFile.isDirectory()) {
+            throw new IOException("Cannot download to a directory. outputFile=" + outputFile.getAbsolutePath());
+        }
+
+        if (statusCode == 200) {
+            InputStream in = new BufferedInputStream(stream);
+            OutputStream out = null;
+            try {
+
+                out = new BufferedOutputStream(new FileOutputStream(outputFile));
+
+                byte[] buffer = new byte[16384];
+                long totalLength = 0;
+                int len;
+                while ((len = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, len);
+                    totalLength += len;
+                }
+
+                return new DownloadResponseImpl(totalLength, outputFile);
+            } finally {
+                try { in.close(); } catch (IOException ignored) {}
+                if (out != null) {
+                    try { out.close(); } catch (IOException ignored) {}
+                }
+            }
+        } else {
+            throw new IOException("Invalid status code: " + statusCode);
+        }
+    }
+
     protected static abstract class Either<T, U> {
         abstract boolean isLeft();
         T getLeft() { return null; }
@@ -568,6 +615,25 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         }
     }
 
+    static class DownloadResponseImpl implements DownloadResponse {
+        private final Long length;
+        private final File content;
+
+        DownloadResponseImpl(Long length, File content) {
+            this.length = length;
+            this.content = content;
+        }
+
+        public Long getLength() {
+            return length;
+        }
+
+        public File getContent() {
+            return content;
+        }
+    }
+
+
     protected static abstract class ResponseBuilder {
         protected abstract ResponseBuilder forPackId(PackId packId);
         protected abstract ResponseBuilder withParam(String name, String value);
@@ -577,6 +643,7 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         protected abstract SimpleResponse getSimpleResponse() throws Exception;
         protected abstract ListResponse getListResponse() throws Exception;
         protected abstract DetailedResponse getDetailedResponse(ResponseProgressListener listener) throws Exception;
+        protected abstract DownloadResponse getDownloadResponse(File outputFile) throws Exception;
     }
 
     //-------------------------------------------------------------------------
@@ -623,6 +690,20 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
     /**
      * {@inheritDoc}
      */
+    public final ListResponse list() throws Exception {
+        return getResponseBuilder().getListResponse();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public final ListResponse list(String query) throws Exception {
+        return getResponseBuilder().withParam(KEY_QUERY, query != null ? query : "").getListResponse();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public final ListResponse list(PackId packageId, boolean includeVersions) throws Exception {
         if (packageId == null) {
             throw new NullPointerException("packageId");
@@ -643,6 +724,38 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
                 .withParam(KEY_PACKAGE, file, MIME_ZIP)
                 .withParam(KEY_FORCE, force)
                 .getSimpleResponse();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public final DownloadResponse download(PackId packageId, File toFile) throws Exception {
+        if (packageId == null) {
+            throw new NullPointerException("packageId");
+        }
+        if (toFile == null) {
+            throw new NullPointerException("toFile");
+        }
+        return getResponseBuilder().forPackId(packageId).getDownloadResponse(toFile);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public final DownloadResponse downloadToDirectory(PackId packageId, File toDirectory) throws Exception {
+        if (packageId == null) {
+            throw new NullPointerException("packageId");
+        }
+        if (toDirectory == null) {
+            throw new NullPointerException("toDirectory");
+        }
+
+        File toFile = new File(toDirectory, packageId.getInstallationPath().substring(1) + ".zip");
+        if (toFile.getParentFile().isDirectory() || toFile.getParentFile().mkdirs()) {
+            return download(packageId, toFile);
+        } else {
+            throw new IOException("Failed to create path: " + toFile.getParentFile().getAbsolutePath());
+        }
     }
 
     /**
