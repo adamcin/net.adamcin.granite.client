@@ -31,6 +31,7 @@ import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.Cookie;
 import com.ning.http.client.ListenableFuture;
+import com.ning.http.client.Realm;
 import com.ning.http.client.Request;
 import com.ning.http.client.Response;
 import com.ning.http.multipart.FilePart;
@@ -114,6 +115,8 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     private final List<Cookie> cookies = new ArrayList<Cookie>();
 
+    private Realm realm = null;
+
     public AsyncPackageManagerClient() {
         this(new AsyncHttpClient());
     }
@@ -127,6 +130,14 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     public AsyncHttpClient getClient() {
         return this.client;
+    }
+
+    public void setRealm(Realm realm) {
+        this.realm = realm;
+    }
+
+    public Realm getRealm() {
+        return this.realm;
     }
 
     private void setCookies(Collection<Cookie> cookies) {
@@ -233,8 +244,11 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
         return getRequestTimeout() >= 0L ? fResponse.get(getRequestTimeout(), TimeUnit.MILLISECONDS) : fResponse.get();
     }
 
-    private AsyncHttpClient.BoundRequestBuilder addCookies(AsyncHttpClient.BoundRequestBuilder builder) {
+    private AsyncHttpClient.BoundRequestBuilder addContext(AsyncHttpClient.BoundRequestBuilder builder) {
         if (builder != null) {
+            if (this.realm != null) {
+                builder.setRealm(this.realm);
+            }
             for (Cookie cookie : this.cookies) {
                 builder.addCookie(cookie);
             }
@@ -247,7 +261,7 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
      */
     protected final Either<? extends Exception, Boolean> checkServiceAvailability(final boolean checkTimeout,
                                                                                   final long timeoutRemaining) {
-        final Request request = this.addCookies(this.client.prepareGet(getJsonUrl())).build();
+        final Request request = this.addContext(this.client.prepareGet(getJsonUrl())).build();
 
         try {
             final ListenableFuture<Response> future = executeAnyRequest(request);
@@ -273,26 +287,26 @@ public final class AsyncPackageManagerClient extends AbstractPackageManagerClien
 
     private AsyncHttpClient.BoundRequestBuilder buildSimpleRequest(PackId packageId) {
         if (packageId != null) {
-            return this.addCookies(this.client.preparePost(getJsonUrl(packageId)));
+            return this.addContext(this.client.preparePost(getJsonUrl(packageId)));
         } else {
-            return this.addCookies(this.client.preparePost(getJsonUrl()));
+            return this.addContext(this.client.preparePost(getJsonUrl()));
         }
     }
 
     private AsyncHttpClient.BoundRequestBuilder buildDetailedRequest(PackId packageId) {
         if (packageId != null) {
-            return this.addCookies(this.client.preparePost(getHtmlUrl(packageId)));
+            return this.addContext(this.client.preparePost(getHtmlUrl(packageId)));
         } else {
-            return this.addCookies(this.client.preparePost(getHtmlUrl()));
+            return this.addContext(this.client.preparePost(getHtmlUrl()));
         }
     }
 
     private AsyncHttpClient.BoundRequestBuilder buildListRequest() {
-        return this.addCookies(this.client.prepareGet(getListUrl()));
+        return this.addContext(this.client.prepareGet(getListUrl()));
     }
 
     private AsyncHttpClient.BoundRequestBuilder buildDownloadRequest() {
-        return this.addCookies(this.client.prepareGet(getDownloadUrl()));
+        return this.addContext(this.client.prepareGet(getDownloadUrl()));
     }
 
     private static String getResponseEncoding(Response response) {
