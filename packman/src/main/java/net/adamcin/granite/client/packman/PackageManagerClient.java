@@ -50,7 +50,7 @@ public interface PackageManagerClient {
 
     String getBaseUrl();
 
-    String getJsonUrl();
+    String getLoginUrl();
 
     /**
      *

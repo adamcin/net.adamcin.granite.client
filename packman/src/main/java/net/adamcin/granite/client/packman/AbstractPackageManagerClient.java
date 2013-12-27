@@ -165,7 +165,11 @@ public abstract class AbstractPackageManagerClient implements PackageManagerClie
         return getHtmlUrl() + packageId.getInstallationPath() + ".zip";
     }
 
-    public final String getJsonUrl() {
+    public String getLoginUrl() {
+        return getJsonUrl();
+    }
+
+    protected final String getJsonUrl() {
         return getBaseUrl() + JSON_SERVICE_PATH;
     }
 
